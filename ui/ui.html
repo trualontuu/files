@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>Files</title>
 <style>
-:root{--bg:#0a0a0a;--bar:#171717;--side:#0e0e0e;--hover:#151515;--sel:#262626;--sel2:#303030;--fg:#ededed;--dim:#8a8a8a;--mut:#5c5c5c;--line:#222;--field:#0d0d0d;--sw:224px;--pw:320px}
+:root{--bg:#0a0a0a;--bar:#151515;--frame:#151515;--card:#0b0b0b;--side:#151515;--hover:#161616;--sel:#242424;--sel2:#2d2d2d;--ease:cubic-bezier(.2,.8,.2,1);--fg:#ededed;--dim:#8a8a8a;--mut:#5c5c5c;--line:#222;--field:#0d0d0d;--sw:224px;--pw:320px}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:12.5px "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;user-select:none;-webkit-user-select:none;cursor:default}
+html,body{height:100%;overflow:hidden;background:var(--frame);color:var(--fg);font:12.5px "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;user-select:none;-webkit-user-select:none;cursor:default}
 body{display:flex;flex-direction:column}
 svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
 input{font:inherit;color:inherit}
@@ -16,7 +16,7 @@ input{font:inherit;color:inherit}
 ::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
 
 /* вкладки */
-#top{height:36px;display:flex;align-items:flex-end;flex:none}
+#top{height:36px;display:flex;align-items:flex-end;flex:none;background:var(--bg)}
 #tabs{display:flex;align-items:flex-end;height:36px;padding-left:8px;min-width:0;flex:0 1 auto;overflow:hidden}
 .tab{position:relative;flex:0 1 200px;min-width:36px;height:30px;display:flex;align-items:center;gap:8px;padding:0 6px 0 11px;border-radius:9px 9px 0 0;color:var(--dim);transition:background .12s,color .12s}
 .tab:hover{background:#121212;color:#c4c4c4}
@@ -39,7 +39,7 @@ input{font:inherit;color:inherit}
 
 /* панель инструментов */
 #tool{height:44px;background:var(--bar);display:flex;align-items:center;gap:2px;padding:0 8px;position:relative;flex:none}
-#tool::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--line)}
+
 #prog{position:absolute;left:0;bottom:0;height:1px;width:0;background:#f2f2f2;z-index:1;opacity:0;transition:opacity .3s}
 #prog.on{opacity:1;animation:p 2.4s cubic-bezier(.1,.6,.3,1) forwards}
 @keyframes p{from{width:0}to{width:85%}}
@@ -82,20 +82,24 @@ input{font:inherit;color:inherit}
 #findx svg{width:13px;height:13px}
 
 /* основная часть */
-#main{flex:1;min-height:0;display:flex}
-#side{width:var(--sw);flex:none;background:var(--side);overflow-y:auto;overflow-x:hidden;padding:8px 8px 16px;border-right:1px solid #191919}
+#main{flex:1;min-height:0;display:flex;padding:0 8px 0 0}
+#card{flex:1;min-width:0;display:flex;background:var(--card);border:1px solid #1f1f1f;border-radius:12px;overflow:hidden}
+#side{width:var(--sw);flex:none;background:var(--frame);overflow-y:auto;overflow-x:hidden;padding:4px 8px 16px 8px;position:relative}
+#pill{position:absolute;left:8px;right:8px;top:0;height:30px;border-radius:8px;background:#232323;transition:transform .32s var(--ease),height .32s var(--ease),opacity .2s;pointer-events:none;opacity:0}
+#pill::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:2px;background:#ededed}
 #side::-webkit-scrollbar{width:8px}
 #side::-webkit-scrollbar-thumb{border-width:2px}
 .sec{font-size:11px;color:var(--mut);padding:14px 10px 6px;letter-spacing:.02em;display:flex;align-items:center;justify-content:space-between}
 .sec:first-child{padding-top:6px}
 .sec.drop{color:#fff}
-.si{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:8px;color:#c6c6c6;white-space:nowrap;position:relative}
+.si{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:8px;color:#b8b8b8;white-space:nowrap;position:relative;z-index:1;transition:background .15s,color .15s}
 .si span{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
-.si:hover{background:#171717;color:#fff}
-.si.on{background:#1f1f1f;color:#fff}
-.si.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:2px;background:#ededed}
+.si:hover{background:#1c1c1c;color:#fff}
+.si.on{color:#fff}
+.si.on:hover{background:transparent}
 .si.drop{background:#2a2a2a;color:#fff}
-.si svg{color:#9a9a9a}
+.si svg{color:#8a8a8a;transition:color .15s}
+.si:hover svg,.si.on svg{color:#e0e0e0}
 .si .fo{width:16px;height:13px}
 .si.drv{height:44px;align-items:flex-start;padding-top:7px}
 .dn{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
@@ -104,26 +108,26 @@ input{font:inherit;color:inherit}
 .dn i u{display:block;height:100%;background:#9a9a9a;border-radius:2px}
 .dn i u.full{background:#ededed}
 .si small{font-size:10.5px;color:var(--mut);margin-left:auto;flex:none}
-.split{width:5px;margin:0 -2px;cursor:col-resize;flex:none;z-index:5;position:relative}
+.split{width:8px;margin:0 -4px;cursor:col-resize;flex:none;z-index:5;position:relative}
 .split:hover::after,.split.on::after{content:"";position:absolute;left:2px;top:0;bottom:0;width:1px;background:#3a3a3a}
 
 #pane{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
-#head{height:30px;flex:none;display:grid;grid-template-columns:var(--cols);align-items:center;padding:0 var(--hr,10px) 0 8px;color:var(--mut);font-size:11.5px;border-bottom:1px solid #161616}
+#head{height:34px;flex:none;display:grid;grid-template-columns:var(--cols);align-items:center;padding:0 var(--hr,10px) 0 8px;color:var(--mut);font-size:11.5px;border-bottom:1px solid #161616}
 #head div{display:flex;align-items:center;gap:4px;height:100%;padding:0 8px;white-space:nowrap;overflow:hidden}
 #head div:hover{color:#bdbdbd}
 #head div.on{color:#cfcfcf}
 #head div svg{width:10px;height:10px;stroke-width:1.8}
 #head .r{justify-content:flex-end}
-#head div:first-child{padding-left:30px}
+#head div:first-child{padding-left:32px}
 #pane.grid #head{display:none}
 #scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative;outline:0}
 #sizer{width:1px}
 #items{position:absolute;left:0;right:0;top:0}
 #band{position:absolute;display:none;border:1px solid #8a8a8a;background:rgba(237,237,237,.07);border-radius:3px;pointer-events:none;z-index:4}
-.row{position:absolute;left:8px;right:8px;top:0;height:30px;display:grid;grid-template-columns:var(--cols);align-items:center;border-radius:7px;color:#d6d6d6;padding-right:2px}
+.row{position:absolute;left:8px;right:8px;top:0;height:32px;display:grid;grid-template-columns:var(--cols);align-items:center;border-radius:8px;color:#d6d6d6;padding-right:2px;transition:background-color .14s,opacity .2s,box-shadow .14s}
 .row>span{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .ic{position:absolute;left:8px;top:7px;width:16px;height:16px;padding:0;display:grid;place-items:center;color:#a8a8a8}
-.row .nm{padding-left:30px;color:var(--fg)}
+.row .ic{position:absolute;left:9px;top:8px;width:16px;height:16px;padding:0;display:grid;place-items:center;color:#a8a8a8}
+.row .nm{padding-left:32px;color:var(--fg);font-size:13px}
 .row .dt,.row .ty,.row .lc{color:var(--dim)}
 .row .sz{color:var(--dim);text-align:right;font-variant-numeric:tabular-nums}
 .row:hover,.tile:hover{background:var(--hover)}
@@ -139,7 +143,9 @@ body.act .row.sel,body.act .tile.sel{background:var(--sel2)}
 .ic.ok svg{visibility:hidden}
 .fo .b{fill:#4d4d4d;stroke:none}
 .fo .f{fill:#9c9c9c;stroke:none}
-.tile{position:absolute;left:8px;top:0;height:120px;border-radius:10px;display:flex;flex-direction:column;align-items:center;padding:8px 6px 0;gap:6px}
+.tile{position:absolute;left:8px;top:0;height:120px;border-radius:12px;display:flex;flex-direction:column;align-items:center;padding:8px 6px 0;gap:6px;transition:background-color .14s,opacity .2s,box-shadow .14s}
+.th>.fo,.th>.bf{transition:transform .25s var(--ease)}
+.tile:hover .th>.fo,.tile:hover .th>.bf{transform:translateY(-2px)}
 .th{width:100%;height:72px;display:grid;place-items:center;position:relative;flex:none}
 .th>.fo{width:64px;height:52px}
 .th img.tn{position:absolute;max-width:100%;max-height:72px;border-radius:4px;opacity:0;transition:opacity .15s;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 1px 0 rgba(255,255,255,.04),0 4px 14px rgba(0,0,0,.45)}
@@ -162,6 +168,22 @@ body.act .row.sel,body.act .tile.sel{background:var(--sel2)}
 .spin{width:14px;height:14px;border:1.6px solid #3a3a3a;border-top-color:#f0f0f0;border-radius:50%;animation:r .75s linear infinite;flex:none}
 @keyframes r{to{transform:rotate(360deg)}}
 
+/* движение */
+.in{animation:rin .34s var(--ease) both}
+@keyframes rin{from{opacity:0;translate:var(--dx,14px) 0}to{opacity:1;translate:0 0}}
+.tile.in{animation-name:tin}
+@keyframes tin{from{opacity:0;translate:0 10px;scale:.96}to{opacity:1;translate:0 0;scale:1}}
+.fadein{animation:fin .26s var(--ease) both}
+@keyframes fin{from{opacity:0;translate:0 6px}to{opacity:1;translate:0 0}}
+.tab.new{animation:tabin .28s var(--ease) both}
+@keyframes tabin{from{opacity:0;max-width:0;padding:0}to{opacity:1;max-width:200px}}
+.cr:last-child{animation:fin .3s var(--ease) both}
+.btn,.win,#plus,.x{transition:background .14s,color .14s,transform .1s}
+.btn:active,#plus:active,.x:active{transform:scale(.9)}
+.pck,.pcdrive{transition:background .15s,border-color .15s,transform .25s var(--ease)}
+.pck:hover,.pcdrive:hover{transform:translateY(-2px)}
+@keyframes pop{from{opacity:0;scale:.95}to{opacity:1;scale:1}}
+
 /* этот компьютер */
 #pcview{position:absolute;inset:0;overflow-y:auto;padding:22px 26px 40px;display:none}
 #pane.pc #pcview{display:block}
@@ -183,7 +205,7 @@ body.act .row.sel,body.act .tile.sel{background:var(--sel2)}
 .pcdrive small{color:var(--mut);font-size:11px}
 
 /* предпросмотр */
-#prev{width:var(--pw);flex:none;background:var(--side);border-left:1px solid #191919;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+#prev{width:var(--pw);flex:none;background:#0e0e0e;border-left:1px solid #1a1a1a;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
 body.nopv #prev,body.nopv #sp2{display:none}
 #pv{padding:18px 18px 24px;display:flex;flex-direction:column;gap:4px;min-height:100%}
 .pvmedia{min-height:120px;max-height:52vh;display:grid;place-items:center;margin-bottom:14px;position:relative;border-radius:10px;overflow:hidden}
@@ -212,16 +234,17 @@ body.nopv #prev,body.nopv #sp2{display:none}
 .pvhint{margin-top:auto;padding-top:24px;color:#3e3e3e;font-size:11px;text-align:center}
 
 /* строка состояния */
-#status{height:26px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--side);border-top:1px solid #191919;color:var(--mut);font-size:11.5px;white-space:nowrap}
+#status{height:28px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px 0 18px;background:var(--frame);color:var(--mut);font-size:11.5px;white-space:nowrap}
 #status .spin{width:11px;height:11px}
 #st1{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
 #st1 b{font-weight:400;color:#a8a8a8}
 
 /* меню, палитра, уведомления */
-#ctx{position:fixed;z-index:50;min-width:230px;background:#171717;border:1px solid #2c2c2c;border-radius:11px;padding:5px;display:none;box-shadow:0 16px 40px rgba(0,0,0,.6);animation:in .12s}
+#ctx{position:fixed;z-index:50;min-width:230px;background:rgba(24,24,24,.92);backdrop-filter:blur(18px);border:1px solid #2c2c2c;border-radius:12px;padding:5px;display:none;box-shadow:0 16px 40px rgba(0,0,0,.6);transform-origin:var(--ox,0) var(--oy,0)}
+#ctx.on{animation:pop .16s var(--ease)}
 #ctx.on{display:block}
 @keyframes in{from{opacity:0;transform:translateY(-3px)}}
-.mi{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:7px;color:#dcdcdc;white-space:nowrap}
+.mi{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:7px;color:#dcdcdc;white-space:nowrap;transition:background .1s}
 .mi.on{background:#2a2a2a;color:#fff}
 .mi.dis{color:#4a4a4a;pointer-events:none}
 .mi kbd{margin-left:auto;padding-left:26px;font:11px "Segoe UI",sans-serif;color:var(--mut)}
@@ -234,15 +257,18 @@ body.nopv #prev,body.nopv #sp2{display:none}
 .mr i{font-style:normal;height:24px;display:grid;place-items:center;padding:0 9px;border-radius:6px;color:#bdbdbd;background:#1f1f1f;font-size:11.5px}
 .mr i:hover{background:#2a2a2a;color:#fff}
 .mr i.on{background:#ededed;color:#000}
-#veil{position:fixed;inset:0;z-index:40;display:none;background:rgba(0,0,0,.35)}
+#veil{position:fixed;inset:0;z-index:40;display:none;background:rgba(0,0,0,.4)}
+#veil.on{animation:vin .2s both}
+@keyframes vin{from{opacity:0}}
 #veil.on{display:block}
 #pal{position:fixed;z-index:45;left:50%;top:76px;transform:translateX(-50%);width:min(600px,calc(100% - 40px));background:#151515;border:1px solid #2c2c2c;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.7);display:none;overflow:hidden;animation:in .14s}
-#pal.on{display:block}
+#pal.on{display:block;animation:palin .2s var(--ease)}
+@keyframes palin{from{opacity:0;translate:0 -8px;scale:.98}}
 #palw{height:50px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #232323;color:var(--dim)}
 #palin{flex:1;background:none;border:0;outline:0;font-size:15px;caret-color:#fff;color:var(--fg)}
 #palin::placeholder{color:var(--mut)}
 #pall{max-height:420px;overflow-y:auto;padding:6px}
-.pi{height:38px;display:flex;align-items:center;gap:12px;padding:0 10px;border-radius:8px;color:#d6d6d6}
+.pi{height:38px;display:flex;align-items:center;gap:12px;padding:0 10px;border-radius:8px;color:#d6d6d6;transition:background .1s}
 .pi.on{background:#262626;color:#fff}
 .pi .fo{width:16px;height:13px}
 .pi>svg{color:#9a9a9a}
@@ -291,6 +317,7 @@ body.nopv #prev,body.nopv #sp2{display:none}
 <div id="main">
   <aside id="side"></aside>
   <div class="split" id="sp1"></div>
+  <div id="card">
   <section id="pane">
     <div id="head"></div>
     <div id="scroll" tabindex="0"><div id="sizer"></div><div id="items"></div><div id="band"></div></div>
@@ -299,6 +326,7 @@ body.nopv #prev,body.nopv #sp2{display:none}
   </section>
   <div class="split" id="sp2"></div>
   <aside id="prev"><div id="pv"></div></aside>
+  </div>
 </div>
 <div id="status"><div id="st1"></div><div id="st2"></div></div>
 <div id="veil"></div>
@@ -325,6 +353,7 @@ window.onunhandledrejection = e => log('REJ ' + (e.reason && e.reason.stack || e
 
 // ---------------------------------------------------------------- состояние
 const S = Object.assign({view: 'list', sort: {k: 'name', d: 1}, hidden: false, preview: true, pins: [], recent: [], sideW: 224, prevW: 320, tabs: null, active: 0}, B.state || {});
+const newTabs = new Set();
 let tabs = [], act = 0, tabSeq = 0, drives = [], cutSet = new Set(), dropEl = null, dragSrc = null;
 const collator = new Intl.Collator('ru', {numeric: true, sensitivity: 'base'});
 const scroller = $('#scroll'), items = $('#items'), sizer = $('#sizer'), band = $('#band');
@@ -507,6 +536,7 @@ const tab = () => tabs[act];
 function newTab(path, at, activate = true) {
   const t = {id: ++tabSeq, path: null, hist: [], hi: -1, items: [], vis: [], idx: new Map(), sel: new Set(), cur: null, anchor: null, scroll: 0, err: null, loading: false, filter: '', search: null, stale: false, gen: 0, mem: new Map(), wantSel: null};
   tabs.splice(at ?? tabs.length, 0, t);
+  if (booted) { newTabs.add(t.id); setTimeout(() => newTabs.delete(t.id), 400); }
   if (activate) { saveScroll(); act = tabs.indexOf(t); }
   go(t, path || homePath());
   paintTabs();
@@ -515,7 +545,8 @@ function newTab(path, at, activate = true) {
 function saveScroll() { const t = tab(); if (t) { t.scroll = scroller.scrollTop; if (t.path) t.mem.set(key(t.path), {scroll: scroller.scrollTop, cur: t.cur}); } }
 function activate(i) {
   if (i < 0 || i >= tabs.length || i === act) return;
-  saveScroll(); act = i; clearNodes();
+  const dir = i > act ? 1 : -1;
+  saveScroll(); act = i; clearNodes(); animate(dir);
   const t = tab();
   $('#find').value = t.search ? t.search.q : t.filter; findState();
   if (t.stale) load(t, true);
@@ -538,6 +569,7 @@ async function go(t, path, o = {}) {
     if (t.hist[t.hi] !== path) { t.hist.push(path); t.hi = t.hist.length - 1; }
   }
   const from = t.path;
+  if (t === tab()) animate(o.dir || (from && parentOf(from) && key(parentOf(from)) === key(path) ? -1 : 1));
   if (t.search) { send('cancel'); t.search = null; }
   t.filter = '';
   if (key(from) !== key(path)) {
@@ -599,7 +631,7 @@ function recompute(t) {
   src = src.slice().sort((a, b) => (b.dir - a.dir) || d * cmp(a, b));
   t.vis = src; t.idx = new Map(src.map((e, i) => [key(e.p), i]));
 }
-function back() { const t = tab(); if (t.search) return exitSearch(t); if (t.hi > 0) { t.hi--; go(t, t.hist[t.hi], {push: false}); } }
+function back() { const t = tab(); if (t.search) return exitSearch(t); if (t.hi > 0) { t.hi--; go(t, t.hist[t.hi], {push: false, dir: -1}); } }
 function fwd() { const t = tab(); if (t.hi < t.hist.length - 1) { t.hi++; go(t, t.hist[t.hi], {push: false}); } }
 function up() { const t = tab(); if (t.search) return exitSearch(t); const p = parentOf(t.path); if (p) go(t, p); }
 function addRecent(p) { if (isPC(p)) return; S.recent = [p, ...S.recent.filter(x => key(x) !== key(p))].slice(0, 60); }
@@ -607,11 +639,12 @@ function watchTabs() { send('watch', {dirs: [...new Set(tabs.filter(t => !isPC(t
 
 // ---------------------------------------------------------------- отрисовка
 const nodes = new Map();
-let nodesTab = null;
+let nodesTab = null, animDir = 0, animUntil = 0;
+function animate(dir) { animDir = dir; animUntil = performance.now() + 450; }
 function clearNodes() { for (const el of nodes.values()) el.remove(); nodes.clear(); }
 function geo() {
   const W = scroller.clientWidth;
-  if (S.view === 'list') return {cols: 1, rowH: 30, pad: 4, tw: W};
+  if (S.view === 'list') return {cols: 1, rowH: 32, pad: 6, tw: W};
   const inner = W - 16;
   const cols = Math.max(1, Math.floor(inner / 112));
   return {cols, rowH: 126, pad: 8, tw: inner / cols};
@@ -650,7 +683,20 @@ function render() {
     let el = nodes.get(k);
     if (!el || el._e !== e) {
       if (el && el === renamingEl) { /* не трогаем поле переименования */ }
-      else { const nel = build(e); if (el) el.replaceWith(nel); else items.appendChild(nel); el = nel; nodes.set(k, el); }
+      else {
+        const nel = build(e);
+        if (!el && animDir && performance.now() < animUntil) {
+          const vi = i - Math.max(0, Math.floor((top - g.pad) / g.rowH)) * g.cols;
+          if (vi >= 0 && vi < 48) {
+            nel.classList.add('in');
+            nel.style.animationDelay = Math.min(vi, 24) * (S.view === 'list' ? 14 : 10) + 'ms';
+            nel.style.setProperty('--dx', animDir * 14 + 'px');
+            nel.addEventListener('animationend', () => { nel.classList.remove('in'); nel.style.animationDelay = ''; }, {once: true});
+          }
+        }
+        if (el) el.replaceWith(nel); else items.appendChild(nel);
+        el = nel; nodes.set(k, el);
+      }
     }
     const r = Math.floor(i / g.cols), c = i % g.cols;
     el.style.transform = `translate(${S.view === 'list' ? 0 : Math.round(c * g.tw)}px,${g.pad + r * g.rowH}px)`;
@@ -672,6 +718,7 @@ function paintSel() {
 }
 function paintHead() {
   const t = tab(), {k, d} = S.sort;
+  if (!t) return;
   document.documentElement.style.setProperty('--hr', (10 + scroller.offsetWidth - scroller.clientWidth) + 'px');
   const cols = t.search ? [['name', 'Имя'], ['loc', 'Папка'], ['date', 'Изменён'], ['size', 'Размер', 'r']] : [['name', 'Имя'], ['date', 'Изменён'], ['type', 'Тип'], ['size', 'Размер', 'r']];
   document.documentElement.style.setProperty('--cols', t.search ? 'minmax(0,1fr) minmax(0,.8fr) 140px 84px' : 'minmax(0,1fr) 140px 150px 84px');
@@ -687,7 +734,8 @@ function paintEmpty() {
     else if (t.filter) html = svg(UI.search) + 'Нет совпадений';
     else html = svg(UI.empty) + 'Папка пуста';
   }
-  el.innerHTML = html; el.classList.toggle('on', !!html);
+  if (el.innerHTML !== html) { el.innerHTML = html; if (html) { el.classList.remove('fadein'); void el.offsetWidth; el.classList.add('fadein'); } }
+  el.classList.toggle('on', !!html);
 }
 function paint() {
   const t = tab();
@@ -711,7 +759,7 @@ function paintNav() {
 function tabIcon(t) { return t.search ? svg(UI.search) : isPC(t.path) ? svg(UI.pc) : FOLDER; }
 function tabTitle(t) { return t.search ? `Поиск «${t.search.q}»` : baseName(t.path || ''); }
 function paintTabs() {
-  $('#tabs').innerHTML = tabs.map((t, i) => `<div class="tab${i === act ? ' on' : ''}" data-i="${i}" title="${esc(isPC(t.path) ? 'Этот компьютер' : t.path)}">${tabIcon(t)}<span class="ttl">${esc(tabTitle(t))}</span><div class="x">${svg('<path d="M4 4l8 8M12 4l-8 8"/>')}</div></div>`).join('');
+  $('#tabs').innerHTML = tabs.map((t, i) => `<div class="tab${i === act ? ' on' : ''}${newTabs.has(t.id) ? ' new' : ''}" data-i="${i}" title="${esc(isPC(t.path) ? 'Этот компьютер' : t.path)}">${tabIcon(t)}<span class="ttl">${esc(tabTitle(t))}</span><div class="x">${svg('<path d="M4 4l8 8M12 4l-8 8"/>')}</div></div>`).join('');
   const w = $('#tabs').clientWidth / Math.max(1, tabs.length);
   document.title = tabTitle(tab()) + ' — Files';
 }
@@ -733,6 +781,7 @@ function crumbSegs(p) {
 }
 function paintPath() {
   const t = tab(), c = $('#crumbs');
+  if (!t) return;
   const segs = crumbSegs(t.path);
   const chev = `<span class="chev">${svg(UI.chev)}</span>`;
   const html = s => `<span class="cr" data-p="${esc(s.p)}">${s.ic || ''}${s.n ? `<span>${esc(s.n)}</span>` : ''}</span>`;
@@ -760,7 +809,22 @@ function paintSide() {
     h += `<div class="si drv${key(d.root) === cur ? ' on' : ''}" data-p="${esc(d.root)}">${svg(UI[d.kind] || UI.disk)}<div class="dn"><span>${esc(driveName(d))}</span><i><u class="${pct > 90 ? 'full' : ''}" style="width:${pct}%"></u></i></div><small>${d.total ? fmtSize(d.free) : ''}</small></div>`;
   }
   h += `<div class="si" data-p="shell:RecycleBinFolder">${svg(UI.trash)}<span>Корзина</span></div>`;
-  $('#side').innerHTML = h;
+  const sig = h.replace(/ on"/g, '"');
+  if (sig !== sideSig) { sideSig = sig; $('#side').innerHTML = '<div id="pill"></div>' + h; }
+  else for (const el of $('#side').querySelectorAll('.si[data-p]')) el.classList.toggle('on', key(el.dataset.p) === cur);
+  movePill();
+}
+let sideSig = '';
+function movePill() {
+  const pill = $('#pill'), on = $('#side .si.on');
+  if (!pill) return;
+  if (!on) { pill.style.opacity = 0; return; }
+  const first = pill.style.opacity !== '1';
+  if (first) pill.style.transition = 'none';
+  pill.style.transform = `translateY(${on.offsetTop}px)`;
+  pill.style.height = on.offsetHeight + 'px';
+  pill.style.opacity = 1;
+  if (first) { void pill.offsetHeight; pill.style.transition = ''; }
 }
 function renderPC() {
   const tiles = B.known.filter(k => k.key !== 'home').map(k => `<div class="pck" data-p="${esc(k.path)}">${FOLDER}<span>${esc(k.name)}</span></div>`).join('');
@@ -768,6 +832,10 @@ function renderPC() {
     const pct = d.total ? Math.round((1 - d.free / d.total) * 100) : 0;
     return `<div class="pcdrive" data-p="${esc(d.root)}">${svg(UI[d.kind] || UI.disk)}<div><b>${esc(driveName(d))}</b><i><u class="${pct > 90 ? 'full' : ''}" style="width:${pct}%"></u></i><small>${d.total ? `${fmtSize(d.free)} свободно из ${fmtSize(d.total)}` : 'нет данных'}</small></div></div>`;
   }).join('');
+  const pcSig = tiles + dr;
+  if ($('#pcview').dataset.sig === pcSig) return;
+  $('#pcview').dataset.sig = pcSig;
+  setTimeout(() => $('#pcview').querySelectorAll('.pck,.pcdrive').forEach((x, i) => { x.classList.add('fadein'); x.style.animationDelay = i * 25 + 'ms'; }));
   $('#pcview').innerHTML = `<div class="pch">Папки</div><div class="pcg">${tiles}</div><div class="pch">Диски</div><div class="pcd">${dr || '<div class="spin"></div>'}</div>`;
 }
 let busyN = 0;
@@ -934,7 +1002,7 @@ function startRename() {
 }
 let reloadT;
 function reloadSoon() { clearTimeout(reloadT); reloadT = setTimeout(() => { const t = tab(); if (!isPC(t.path) && !t.search) load(t, true); }, 250); }
-function setView(v) { saveScroll(); S.view = v; clearNodes(); paint(); reveal(); saveSoon(); }
+function setView(v) { if (S.view === v) return; saveScroll(); S.view = v; clearNodes(); animate(1); paint(); reveal(); saveSoon(); }
 function setSort(k) {
   if (S.sort.k === k) S.sort.d = -S.sort.d; else S.sort = {k, d: k === 'date' || k === 'size' ? -1 : 1};
   for (const t of tabs) recompute(t);
@@ -961,7 +1029,7 @@ function deepSearch(q) {
   t.search = {q, root, sid, items: [], done: false, scanned: 0};
   t.filter = ''; t.sel.clear(); t.cur = null;
   send('search', {p: root, q, sid, hidden: S.hidden});
-  recompute(t); clearNodes(); scroller.scrollTop = 0; paint();
+  recompute(t); clearNodes(); scroller.scrollTop = 0; animate(1); paint();
 }
 function exitSearch(t) {
   send('cancel');
@@ -988,6 +1056,8 @@ function schedulePreview() { clearTimeout(pvTimer); pvTimer = setTimeout(preview
 async function preview() {
   if (!S.preview) return;
   const t = tab(), s = selEntries(t), el = $('#pv');
+  const k0 = pvKey;
+  queueMicrotask(() => { if (pvKey !== k0) { el.classList.remove('fadein'); void el.offsetWidth; el.classList.add('fadein'); } });
   const hint = '<div class="pvhint">Пробел — скрыть панель</div>';
   if (s.length > 1) {
     const k = 'multi' + s.length;
@@ -1064,7 +1134,10 @@ function menu(x, y, list) {
   el.classList.add('on'); ctxOpen = true;
   const r = el.getBoundingClientRect();
   el.style.left = Math.max(4, Math.min(x, innerWidth - r.width - 6)) + 'px';
-  el.style.top = Math.max(4, y + r.height > innerHeight - 6 ? y - r.height : y) + 'px';
+  const upw = y + r.height > innerHeight - 6;
+  el.style.top = Math.max(4, upw ? y - r.height : y) + 'px';
+  el.style.setProperty('--ox', x > innerWidth - r.width - 6 ? '100%' : '0');
+  el.style.setProperty('--oy', upw ? '100%' : '0');
 }
 function closeMenu() { $('#ctx').classList.remove('on'); ctxOpen = false; }
 $('#ctx').addEventListener('mousedown', e => e.preventDefault());

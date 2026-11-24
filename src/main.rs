@@ -638,6 +638,19 @@ fn create_view(env: &ICoreWebView2Environment, open: Option<String>) {
                 })),
                 &mut tok,
             );
+            // заголовок окна = текущая папка (видно в панели задач и Alt+Tab)
+            let _ = view.wv.add_DocumentTitleChanged(
+                &DocumentTitleChangedEventHandler::create(Box::new(|wv, _| {
+                    if let Some(wv) = wv {
+                        let t = get_str(|p| wv.DocumentTitle(p));
+                        if !t.is_empty() {
+                            let _ = SetWindowTextW(hwnd(), &HSTRING::from(t.as_str()));
+                        }
+                    }
+                    Ok(())
+                })),
+                &mut tok,
+            );
             let _ = view.wv.add_NewWindowRequested(
                 &NewWindowRequestedEventHandler::create(Box::new(|_, args| {
                     if let Some(a) = args {
