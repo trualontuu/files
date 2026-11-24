@@ -184,6 +184,29 @@ body.act .row.sel,body.act .tile.sel{background:var(--sel2)}
 .pck:hover,.pcdrive:hover{transform:translateY(-2px)}
 @keyframes pop{from{opacity:0;scale:.95}to{opacity:1;scale:1}}
 
+/* операции */
+#ops{position:fixed;right:18px;bottom:40px;z-index:35;display:flex;flex-direction:column;gap:8px;width:320px;pointer-events:none}
+.op{pointer-events:auto;background:rgba(24,24,24,.95);backdrop-filter:blur(16px);border:1px solid #2c2c2c;border-radius:12px;padding:11px 10px 12px 14px;box-shadow:0 12px 32px rgba(0,0,0,.5);animation:fin .24s var(--ease) both}
+.op .oh{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#ededed}
+.op .oh span{flex:1}
+.op .oc{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:var(--dim)}
+.op .oc:hover{background:#2c2c2c;color:#fff}
+.op .oc svg{width:12px;height:12px}
+.op .oi{font-size:11.5px;color:var(--dim);margin:3px 4px 9px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.op i{display:block;height:3px;border-radius:2px;background:#2a2a2a;overflow:hidden;margin-right:4px}
+.op i u{display:block;height:100%;width:0;background:#ededed;transition:width .25s linear}
+.op small{display:block;margin-top:7px;font-size:11px;color:var(--mut)}
+.op.out{animation:fout .2s both}
+@keyframes fout{to{opacity:0;translate:0 6px}}
+/* группы */
+.grp{position:absolute;left:8px;right:8px;top:0;height:32px;display:flex;align-items:flex-end;gap:8px;padding:0 10px 6px;color:#a8a8a8;font-size:11.5px;font-weight:600;border-bottom:1px solid #1c1c1c;letter-spacing:.01em}
+.grp b{font-weight:400;color:var(--mut)}
+/* архив в предпросмотре */
+.pvzip{display:flex;flex-direction:column;gap:2px;margin:0 0 14px;padding:8px;border:1px solid #1a1a1a;border-radius:10px;background:#0a0a0a;max-height:40vh;overflow:auto}
+.pvzip div{display:flex;align-items:center;gap:8px;height:24px;color:#bdbdbd;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pvzip div svg,.pvzip .fo{width:14px;height:12px;flex:none;color:#8a8a8a}
+.pvzip small{color:var(--mut);padding:4px 0 0 2px}
+
 /* этот компьютер */
 #pcview{position:absolute;inset:0;overflow-y:auto;padding:22px 26px 40px;display:none}
 #pane.pc #pcview{display:block}
@@ -333,6 +356,7 @@ body.nopv #prev,body.nopv #sp2{display:none}
 <div id="ctx"></div>
 <div id="pal"><div id="palw"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2L13.5 13.5"/></svg><input id="palin" spellcheck="false" autocomplete="off" placeholder="Папка, файл или команда"></div><div id="pall"></div></div>
 <div id="modal"><h3></h3><p></p><div class="bt"><button class="no">Отмена</button><button class="ok"></button></div></div>
+<div id="ops"></div>
 <div id="toast"></div>
 <div id="ghost"></div>
 <script>
@@ -352,7 +376,7 @@ window.onerror = (m, s, l, c) => log('ERR ' + m + ' @' + l + ':' + c);
 window.onunhandledrejection = e => log('REJ ' + (e.reason && e.reason.stack || e.reason));
 
 // ---------------------------------------------------------------- состояние
-const S = Object.assign({view: 'list', sort: {k: 'name', d: 1}, hidden: false, preview: true, pins: [], recent: [], sideW: 224, prevW: 320, tabs: null, active: 0}, B.state || {});
+const S = Object.assign({view: 'list', sort: {k: 'name', d: 1}, hidden: false, preview: true, cols: {date: true, type: true, size: true}, group: 'none', opened: [], pins: [], recent: [], sideW: 224, prevW: 320, tabs: null, active: 0}, B.state || {});
 const newTabs = new Set();
 let tabs = [], act = 0, tabSeq = 0, drives = [], cutSet = new Set(), dropEl = null, dragSrc = null;
 const collator = new Intl.Collator('ru', {numeric: true, sensitivity: 'base'});
@@ -400,6 +424,10 @@ const UI = {
   cmd: '<path d="M6 5.5h4M6 8h4M6 10.5h2.5"/><rect x="2.5" y="2.5" width="11" height="11" rx="2"/>',
   empty: '<rect x="2.5" y="3.5" width="11" height="9" rx="1.8"/><path d="M2.5 9h3l1 1.5h3l1-1.5h3"/>',
   lock: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.4"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"/>',
+  clock: '<circle cx="8" cy="8" r="5.8"/><path d="M8 4.8V8l2.2 1.5"/>',
+  phone: '<rect x="4.5" y="1.8" width="7" height="12.4" rx="1.6"/><path d="M7.2 12h1.6"/>',
+  plus: '<path d="M8 3.5v9M3.5 8h9"/>',
+  x: '<path d="M4 4l8 8M12 4l-8 8"/>',
   pin: '<path d="M9.8 2.5l3.7 3.7-2.6 1.1-2.4 2.4.3 2.5-1 1-5-5 1-1 2.5.3 2.4-2.4z M5 11l-2.5 2.5"/>',
   max: '<rect x="3.5" y="3.5" width="9" height="9" rx="1"/>',
   restore: '<rect x="3.5" y="5.5" width="7" height="7" rx="1"/><path d="M5.5 5.5V4.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-1"/>',
@@ -432,7 +460,7 @@ const TEXT_KINDS = new Set(['code', 'text']);
 
 function smallIcon(e) {
   if (e.dir) return FOLDER;
-  const real = ICON_KINDS.has(e.k) || e.ext === 'ico';
+  const real = !e.z && (ICON_KINDS.has(e.k) || e.ext === 'ico');
   return svg(G[e.k] || G.file) + (real ? `<img src="${thumbUrl(e, 32, true)}">` : '');
 }
 function bigIcon(e) {
@@ -444,7 +472,7 @@ function thumbUrl(e, px, icon) {
   return `${HOST}thumb?k=${icon ? 'i' : 't'}&s=${px}&v=${e.t}-${e.s}&p=${enc(e.p)}`;
 }
 function thumbImg(e, css) {
-  if (e.dir) return '';
+  if (e.dir || e.z) return '';
   const px = css * DPR() <= 96 ? 96 : css * DPR() <= 128 ? 128 : 256;
   if (ICON_KINDS.has(e.k) || e.ext === 'ico') return `<img class="ti" src="${thumbUrl(e, 64, true)}">`;
   if (THUMB_KINDS.has(e.k)) return `<img class="tn" src="${thumbUrl(e, px, false)}">`;
@@ -480,6 +508,16 @@ const fmtFull = t => t ? new Date(t).toLocaleString('ru', {day: 'numeric', month
 
 // ---------------------------------------------------------------- пути
 const isPC = p => p === 'pc';
+const isVirt = p => p === 'pc' || p === 'recent';
+function zipOf(p) {
+  if (!p || isVirt(p)) return null;
+  const m = /^(.*?\.zip)(?:\\(.*))?$/i.exec(p);
+  return m ? {zip: m[1], inner: (m[2] || '').replace(/\\/g, '/')} : null;
+}
+const inZip = t => !!zipOf(t.path);
+const hasLoc = t => !!t.search || t.path === 'recent';
+const baseOf = p => p.slice(p.lastIndexOf('\\') + 1);
+const inRecycle = p => /\\\$recycle\.bin\\/i.test(p);
 const key = p => (p || '').toLowerCase();
 function norm(p) {
   p = String(p).trim().replace(/\//g, '\\').replace(/^"(.*)"$/, '$1');
@@ -491,11 +529,12 @@ function norm(p) {
 const join = (d, n) => d.endsWith('\\') ? d + n : d + '\\' + n;
 function parentOf(p) {
   if (!p || isPC(p)) return null;
+  if (p === 'recent') return null;
   if (/^[A-Z]:\\$/i.test(p)) return 'pc';
+  if (p.startsWith('\\\\') && p.split('\\').length <= 3) return 'pc';
   const i = p.lastIndexOf('\\');
   if (i < 0) return 'pc';
   const r = p.slice(0, i);
-  if (p.startsWith('\\\\') && r.split('\\').length <= 3) return 'pc';
   return /^[A-Z]:$/i.test(r) ? r + '\\' : r;
 }
 const dirOf = p => parentOf(p) || p;
@@ -504,6 +543,7 @@ const driveOf = p => drives.find(d => key(p).startsWith(key(d.root)));
 const driveName = d => (d.label || (d.kind === 'usb' ? 'USB-накопитель' : d.kind === 'net' ? 'Сетевой диск' : 'Локальный диск')) + ` (${d.letter}:)`;
 function baseName(p) {
   if (isPC(p)) return 'Этот компьютер';
+  if (p === 'recent') return 'Недавние';
   const k = knownBy(p);
   if (k) return k.name;
   if (/^[A-Z]:\\$/i.test(p)) { const d = drives.find(d => key(d.root) === key(p)); return d ? driveName(d) : p.slice(0, 2); }
@@ -523,6 +563,7 @@ function mk(dir, a) {
   e.tn = dir_ ? 'Папка' : k === 'pdf' ? 'Документ PDF' : k === 'link' ? 'Ярлык' : KN[k] ? KN[k] + ' ' + ext.toUpperCase() : ext ? 'Файл ' + ext.toUpperCase() : 'Файл';
   return e;
 }
+function mkRecent(a) { const e = mkSearch([a[0], a[1], a[2], a[4] || a[3]]); return e; }
 function mkSearch(a) {
   const p = a[0], i = p.lastIndexOf('\\');
   const loc = i <= 2 ? p.slice(0, 3) : p.slice(0, i);
@@ -562,7 +603,7 @@ function closeTab(i = act) {
   paint(); scroller.scrollTop = t.scroll; render(); watchTabs(); saveSoon();
 }
 async function go(t, path, o = {}) {
-  path = isPC(path) ? 'pc' : norm(path);
+  path = isVirt(path) ? path : norm(path);
   if (t === tab() && t.path) saveScroll();
   if (o.push !== false) {
     t.hist = t.hist.slice(0, t.hi + 1);
@@ -592,14 +633,27 @@ async function load(t, keep = false) {
   if (isPC(path)) {
     t.items = []; t.err = null; t.loading = false; recompute(t);
     if (t === tab()) { paint(); await refreshDrives(); }
+    if (!booted && t === tab() && initDone) boot();
     return;
   }
+  const z = zipOf(path);
   t.loading = true;
   const timer = setTimeout(() => { if (t.gen === gen && t === tab()) { prog(true); paintEmpty(); paintStatus(); } }, 150);
   try {
-    const arr = await call('list', {p: path});
-    if (t.gen !== gen) return;
-    t.items = arr.map(a => mk(path, a)); t.err = null;
+    if (path === 'recent') {
+      const arr = await call('recent', {own: S.opened});
+      if (t.gen !== gen) return;
+      t.items = arr.map(mkRecent);
+    } else if (z) {
+      const arr = await call('zlist', {zip: z.zip, p: z.inner});
+      if (t.gen !== gen) return;
+      t.items = arr.map(a => { const e = mk(path, a); e.z = {zip: z.zip, inner: (z.inner ? z.inner + '/' : '') + e.n}; return e; });
+    } else {
+      const arr = await call('list', {p: path});
+      if (t.gen !== gen) return;
+      t.items = arr.map(a => mk(path, a));
+    }
+    t.err = null;
   } catch (e) {
     if (t.gen !== gen) return;
     t.items = []; t.err = String(e);
@@ -628,14 +682,54 @@ function recompute(t) {
   if (t.filter) { const q = t.filter.toLowerCase(); src = src.filter(e => e.lc.includes(q)); }
   const {k, d} = S.sort, c = collator.compare;
   const cmp = k === 'date' ? (a, b) => (a.t - b.t) || c(a.n, b.n) : k === 'size' ? (a, b) => (a.s - b.s) || c(a.n, b.n) : k === 'type' ? (a, b) => c(a.tn, b.tn) || c(a.n, b.n) : (a, b) => c(a.n, b.n);
-  src = src.slice().sort((a, b) => (b.dir - a.dir) || d * cmp(a, b));
-  t.vis = src; t.idx = new Map(src.map((e, i) => [key(e.p), i]));
+  if (t.path === 'recent' && k === 'name' && d === 1) src = src.slice().sort((a, b) => b.t - a.t);
+  else src = src.slice().sort((a, b) => (b.dir - a.dir) || d * cmp(a, b));
+  if (S.group !== 'none' && S.view === 'list') {
+    const fn = S.group === 'date' ? e => bucketDate(e.t) : bucketType;
+    const withB = src.map((e, i) => [fn(e), i, e]);
+    withB.sort((a, b) => a[0][0] - b[0][0] || a[1] - b[1]);
+    const counts = {};
+    for (const [b] of withB) counts[b[0]] = (counts[b[0]] || 0) + 1;
+    const out = [];
+    let cur = -1;
+    for (const [b, , e] of withB) {
+      if (b[0] !== cur) { cur = b[0]; out.push({hdr: true, n: b[1], cnt: counts[b[0]], p: '\u0001grp' + b[0]}); }
+      out.push(e);
+    }
+    src = out;
+  }
+  t.vis = src; t.idx = new Map();
+  src.forEach((e, i) => { if (!e.hdr) t.idx.set(key(e.p), i); });
 }
+function bucketDate(t) {
+  const now = new Date(), d0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (t >= d0) return [0, 'Сегодня'];
+  if (t >= d0 - 864e5) return [1, 'Вчера'];
+  if (t >= d0 - ((now.getDay() + 6) % 7) * 864e5) return [2, 'На этой неделе'];
+  if (t >= new Date(now.getFullYear(), now.getMonth(), 1).getTime()) return [3, 'В этом месяце'];
+  if (t >= new Date(now.getFullYear(), 0, 1).getTime()) return [4, 'В этом году'];
+  return [5, 'Давно'];
+}
+const TYPE_ORDER = ['folder', 'image', 'video', 'audio', 'doc', 'pdf', 'text', 'sheet', 'slide', 'code', 'archive', 'app', 'link', 'font', 'disk', 'sys', 'file'];
+const TYPE_NAMES = {folder: 'Папки', image: 'Изображения', video: 'Видео', audio: 'Аудио', doc: 'Документы', pdf: 'PDF', text: 'Текст', sheet: 'Таблицы', slide: 'Презентации', code: 'Код', archive: 'Архивы', app: 'Приложения', link: 'Ярлыки', font: 'Шрифты', disk: 'Образы дисков', sys: 'Системные', file: 'Другое'};
+function bucketType(e) { const i = TYPE_ORDER.indexOf(e.k); return [i < 0 ? 99 : i, TYPE_NAMES[e.k] || 'Другое']; }
+function setGroup(g) { S.group = g; for (const t of tabs) recompute(t); clearNodes(); paint(); saveSoon(); }
+function toggleCol(c) { S.cols[c] = !S.cols[c]; clearNodes(); paintHead(); render(); saveSoon(); }
+function columns(t) {
+  const c = [['name', 'Имя']];
+  if (hasLoc(t)) c.push(['loc', 'Папка']);
+  if (S.cols.date) c.push(['date', t.path === 'recent' ? 'Открыт' : 'Изменён']);
+  if (S.cols.type && !hasLoc(t)) c.push(['type', 'Тип']);
+  if (S.cols.size) c.push(['size', 'Размер', 'r']);
+  return c;
+}
+const COLW = {name: 'minmax(0,1fr)', loc: 'minmax(0,.8fr)', date: '140px', type: '150px', size: '84px'};
 function back() { const t = tab(); if (t.search) return exitSearch(t); if (t.hi > 0) { t.hi--; go(t, t.hist[t.hi], {push: false, dir: -1}); } }
 function fwd() { const t = tab(); if (t.hi < t.hist.length - 1) { t.hi++; go(t, t.hist[t.hi], {push: false}); } }
 function up() { const t = tab(); if (t.search) return exitSearch(t); const p = parentOf(t.path); if (p) go(t, p); }
 function addRecent(p) { if (isPC(p)) return; S.recent = [p, ...S.recent.filter(x => key(x) !== key(p))].slice(0, 60); }
-function watchTabs() { send('watch', {dirs: [...new Set(tabs.filter(t => !isPC(t.path)).map(t => t.path))]}); }
+const watchable = p => !isVirt(p) && !zipOf(p) && !/^\\\\[^\\]+$/.test(p);
+function watchTabs() { send('watch', {dirs: [...new Set(tabs.filter(t => watchable(t.path)).map(t => t.path))]}); }
 
 // ---------------------------------------------------------------- отрисовка
 const nodes = new Map();
@@ -651,14 +745,13 @@ function geo() {
 }
 function build(e) {
   const el = document.createElement('div');
-  el._e = e; el.dataset.k = key(e.p); el.draggable = true;
+  el._e = e; el.dataset.k = key(e.p);
   const t = tab();
+  if (e.hdr) { el.className = 'grp'; el.innerHTML = `<span>${esc(e.n)}</span><b>${e.cnt}</b>`; return el; }
   if (S.view === 'list') {
     el.className = 'row' + (e.hid ? ' hid' : '');
-    el.innerHTML = `<span class="ic">${smallIcon(e)}</span><span class="nm">${esc(e.n)}</span>` +
-      (t.search ? `<span class="lc">${esc(e.loc)}</span>` : '') +
-      `<span class="dt">${fmtDate(e.t)}</span>` + (t.search ? '' : `<span class="ty">${esc(e.tn)}</span>`) +
-      `<span class="sz">${e.dir ? '' : fmtSize(e.s)}</span>`;
+    const cell = {loc: () => `<span class="lc">${esc(e.loc)}</span>`, date: () => `<span class="dt">${fmtDate(e.t)}</span>`, type: () => `<span class="ty">${esc(e.tn)}</span>`, size: () => `<span class="sz">${e.dir ? '' : fmtSize(e.s)}</span>`};
+    el.innerHTML = `<span class="ic">${smallIcon(e)}</span><span class="nm">${esc(e.n)}</span>` + columns(t).slice(1).map(c => cell[c[0]]()).join('');
   } else {
     el.className = 'tile' + (e.hid ? ' hid' : '');
     el.innerHTML = `<div class="th">${bigIcon(e)}${thumbImg(e, 72)}</div><div class="nm">${esc(e.n)}</div>`;
@@ -670,7 +763,8 @@ function render() {
   const t = tab();
   if (!t) return;
   if (isPC(t.path)) { clearNodes(); sizer.style.height = '0'; return; }
-  if (nodesTab !== t.id + S.view + !!t.search) { clearNodes(); nodesTab = t.id + S.view + !!t.search; }
+  const sig = t.id + S.view + hasLoc(t) + JSON.stringify(S.cols) + S.group;
+  if (nodesTab !== sig) { clearNodes(); nodesTab = sig; }
   const g = geo(), list = t.vis, rows = Math.ceil(list.length / g.cols);
   sizer.style.height = (rows * g.rowH + g.pad * 2) + 'px';
   const top = scroller.scrollTop, H = scroller.clientHeight;
@@ -720,8 +814,8 @@ function paintHead() {
   const t = tab(), {k, d} = S.sort;
   if (!t) return;
   document.documentElement.style.setProperty('--hr', (10 + scroller.offsetWidth - scroller.clientWidth) + 'px');
-  const cols = t.search ? [['name', 'Имя'], ['loc', 'Папка'], ['date', 'Изменён'], ['size', 'Размер', 'r']] : [['name', 'Имя'], ['date', 'Изменён'], ['type', 'Тип'], ['size', 'Размер', 'r']];
-  document.documentElement.style.setProperty('--cols', t.search ? 'minmax(0,1fr) minmax(0,.8fr) 140px 84px' : 'minmax(0,1fr) 140px 150px 84px');
+  const cols = columns(t);
+  document.documentElement.style.setProperty('--cols', cols.map(c => COLW[c[0]]).join(' '));
   $('#head').innerHTML = cols.map(([id, n, cls]) => `<div data-k="${id}" class="${cls || ''}${id === k ? ' on' : ''}">${id === k && cls ? svg(d > 0 ? UI.up : UI.down) : ''}${n}${id === k && !cls ? svg(d > 0 ? UI.up : UI.down) : ''}</div>`).join('');
 }
 function paintEmpty() {
@@ -732,7 +826,7 @@ function paintEmpty() {
     else if (t.err) html = svg(UI.lock) + esc(t.err);
     else if (t.search) html = t.search.done ? svg(UI.search) + 'Ничего не найдено' : '<div class="spin"></div>Ищу…';
     else if (t.filter) html = svg(UI.search) + 'Нет совпадений';
-    else html = svg(UI.empty) + 'Папка пуста';
+    else html = svg(UI.empty) + (t.path === 'recent' ? 'Недавних файлов нет' : 'Папка пуста');
   }
   if (el.innerHTML !== html) { el.innerHTML = html; if (html) { el.classList.remove('fadein'); void el.offsetWidth; el.classList.add('fadein'); } }
   el.classList.toggle('on', !!html);
@@ -756,7 +850,7 @@ function paintNav() {
   $('#fwd').classList.toggle('off', !(t.hi < t.hist.length - 1));
   $('#up').classList.toggle('off', !parentOf(t.path) && !t.search);
 }
-function tabIcon(t) { return t.search ? svg(UI.search) : isPC(t.path) ? svg(UI.pc) : FOLDER; }
+function tabIcon(t) { return t.search ? svg(UI.search) : isPC(t.path) ? svg(UI.pc) : t.path === 'recent' ? svg(UI.clock) : inZip(t) ? svg(G.archive) : FOLDER; }
 function tabTitle(t) { return t.search ? `Поиск «${t.search.q}»` : baseName(t.path || ''); }
 function paintTabs() {
   $('#tabs').innerHTML = tabs.map((t, i) => `<div class="tab${i === act ? ' on' : ''}${newTabs.has(t.id) ? ' new' : ''}" data-i="${i}" title="${esc(isPC(t.path) ? 'Этот компьютер' : t.path)}">${tabIcon(t)}<span class="ttl">${esc(tabTitle(t))}</span><div class="x">${svg('<path d="M4 4l8 8M12 4l-8 8"/>')}</div></div>`).join('');
@@ -766,6 +860,7 @@ function paintTabs() {
 function crumbSegs(p) {
   const segs = [{p: 'pc', n: '', ic: svg(UI.pc)}];
   if (isPC(p)) { segs[0].n = 'Этот компьютер'; return segs; }
+  if (p === 'recent') return [{p: 'recent', n: 'Недавние', ic: svg(UI.clock)}];
   const home = homePath();
   let rest = p, base = '';
   if (key(p).startsWith(key(home)) && !isPC(home)) {
@@ -774,7 +869,7 @@ function crumbSegs(p) {
     const root = p.slice(0, 3); const d = drives.find(d => key(d.root) === key(root));
     segs.push({p: root, n: d && d.label ? `${d.label} (${d.letter}:)` : root.slice(0, 2)}); base = root; rest = p.slice(3);
   } else if (p.startsWith('\\\\')) {
-    const parts = p.slice(2).split('\\'); base = '\\\\' + parts.slice(0, 2).join('\\'); segs.push({p: base, n: base}); rest = p.slice(base.length);
+    const parts = p.slice(2).split('\\'); base = '\\\\' + parts[0]; segs.push({p: base, n: parts[0], ic: svg(UI.net)}); rest = p.slice(base.length);
   }
   for (const part of rest.split('\\').filter(Boolean)) { base = join(base, part); segs.push({p: base, n: part}); }
   return segs;
@@ -797,7 +892,7 @@ function paintSide() {
   const t = tab(), cur = key(t ? t.path : '');
   const icon = k => svg(UI[k] || UI.documents);
   const item = (p, name, ic, extra = '') => `<div class="si${key(p) === cur ? ' on' : ''}" data-p="${esc(p)}"${extra}>${ic}<span>${esc(name)}</span></div>`;
-  let h = '<div class="sec">Избранное</div>';
+  let h = '<div class="sec">Избранное</div>' + item('recent', 'Недавние', svg(UI.clock));
   const order = ['home', 'desktop', 'downloads', 'documents', 'pictures', 'music', 'videos'];
   for (const k of order) { const f = B.known.find(x => x.key === k); if (f) h += item(f.path, f.name, icon(k)); }
   h += `<div class="sec pins">Закреплённые</div>`;
@@ -809,6 +904,11 @@ function paintSide() {
     h += `<div class="si drv${key(d.root) === cur ? ' on' : ''}" data-p="${esc(d.root)}">${svg(UI[d.kind] || UI.disk)}<div class="dn"><span>${esc(driveName(d))}</span><i><u class="${pct > 90 ? 'full' : ''}" style="width:${pct}%"></u></i></div><small>${d.total ? fmtSize(d.free) : ''}</small></div>`;
   }
   h += `<div class="si" data-p="shell:RecycleBinFolder">${svg(UI.trash)}<span>Корзина</span></div>`;
+  const hosts = [], seenH = new Set();
+  for (const p of S.recent) if (p.startsWith('\\\\')) { const hh = '\\\\' + p.slice(2).split('\\')[0]; if (!seenH.has(key(hh))) { seenH.add(key(hh)); hosts.push(hh); } }
+  h += '<div class="sec">Сеть</div>' + hosts.slice(0, 6).map(hh => item(hh, hh.slice(2), svg(UI.net))).join('');
+  h += `<div class="si" data-act="connect">${svg(UI.plus)}<span>Подключиться…</span></div>`;
+  h += `<div class="si" data-p="shell:MyComputerFolder">${svg(UI.phone)}<span>Телефон и устройства</span></div>`;
   const sig = h.replace(/ on"/g, '"');
   if (sig !== sideSig) { sideSig = sig; $('#side').innerHTML = '<div id="pill"></div>' + h; }
   else for (const el of $('#side').querySelectorAll('.si[data-p]')) el.classList.toggle('on', key(el.dataset.p) === cur);
@@ -839,6 +939,81 @@ function renderPC() {
   $('#pcview').innerHTML = `<div class="pch">Папки</div><div class="pcg">${tiles}</div><div class="pch">Диски</div><div class="pcd">${dr || '<div class="spin"></div>'}</div>`;
 }
 let busyN = 0;
+const opsUI = new Map();
+/** Команда-операция: показывает карточку прогресса, если длится дольше 450 мс. */
+function opCall(c, a, label, files) {
+  const id = ++rid;
+  const pr = new Promise((res, rej) => waits.set(id, {res, rej}));
+  if (files) wv.postMessageWithAdditionalObjects({...a, c, id}, files); else wv.postMessage({...a, c, id});
+  const card = {label, t0: performance.now(), el: null, last: null};
+  card.timer = setTimeout(() => showOp(id), 450);
+  opsUI.set(id, card);
+  return pr.finally(() => { clearTimeout(card.timer); hideOp(id); });
+}
+const callOp = (items, label) => opCall('op', {items}, label);
+function showOp(id) {
+  const c = opsUI.get(id);
+  if (!c || c.el) return;
+  const el = document.createElement('div');
+  el.className = 'op';
+  el.innerHTML = `<div class="oh"><span>${esc(c.label)}</span><div class="oc" title="Отменить">${svg(UI.x)}</div></div><div class="oi">Подготовка…</div><i><u></u></i><small></small>`;
+  el.querySelector('.oc').onclick = () => { send('cancelop', {op: id}); el.querySelector('small').textContent = 'Отмена…'; };
+  $('#ops').appendChild(el);
+  c.el = el;
+  if (c.last) onProgress(c.last);
+}
+function hideOp(id) {
+  const c = opsUI.get(id);
+  opsUI.delete(id);
+  if (c && c.el) { const el = c.el; el.classList.add('out'); setTimeout(() => el.remove(), 200); }
+}
+function onProgress(m) {
+  const c = opsUI.get(m.op);
+  if (!c) return;
+  c.last = m;
+  if (!c.el) return;
+  const pct = m.total ? Math.min(1, m.done / m.total) : 0;
+  c.el.querySelector('u').style.width = (pct * 100).toFixed(1) + '%';
+  if (m.item) c.el.querySelector('.oi').textContent = m.item;
+  const sec = (performance.now() - c.t0) / 1000;
+  let eta = '';
+  if (pct > 0.03 && sec > 1.5) { const rest = sec / pct - sec; eta = rest < 60 ? `осталось ${Math.max(1, Math.ceil(rest))} с` : `осталось ${Math.ceil(rest / 60)} мин`; }
+  c.el.querySelector('small').textContent = Math.round(pct * 100) + '%' + (eta ? ' · ' + eta : '');
+}
+
+// ---------------------------------------------------------------- отмена (Ctrl+Z) и повтор (Ctrl+Y)
+const undoStack = [], redoStack = [];
+function inverse(pairs) {
+  const out = [];
+  for (const [a, b, k] of pairs || []) {
+    if (k === 'rename') { if (b) out.push({k: 'rename', src: b, name: baseOf(a)}); }
+    else if (k === 'move') {
+      if (!b) continue;
+      if (inRecycle(a)) out.push({k: 'delete', src: b});
+      else out.push(Object.assign({k: 'move', src: b, dst: dirOf(a)}, baseOf(a) !== baseOf(b) ? {name: baseOf(a)} : {}));
+    } else if (k === 'copy') { if (b) out.push({k: 'delete', src: b}); }
+    else if (k === 'delete') { if (b && inRecycle(b)) out.push({k: 'move', src: b, dst: dirOf(a), name: baseOf(a)}); }
+  }
+  return out;
+}
+function remember(label, items) {
+  if (!items || !items.length) return;
+  undoStack.push({label, items});
+  if (undoStack.length > 40) undoStack.shift();
+  redoStack.length = 0;
+}
+async function undo(redo) {
+  const st = redo ? redoStack : undoStack;
+  const e = st.pop();
+  if (!e) return toast(redo ? 'Нечего повторять' : 'Нечего отменять');
+  const r = await runOp(() => callOp(e.items, redo ? 'Повтор' : 'Отмена'));
+  if (r) {
+    const inv = inverse(r.pairs);
+    if (inv.length) (redo ? undoStack : redoStack).push({label: e.label, items: inv});
+    toast((redo ? 'Повторено: ' : 'Отменено: ') + e.label);
+  }
+  reloadSoon();
+}
 function prog(on) { $('#prog').classList.toggle('on', on || busyN > 0); }
 function paintStatus() {
   const t = tab();
@@ -846,9 +1021,9 @@ function paintStatus() {
   if (isPC(t.path)) a = `${drives.length} ${plural(drives.length, 'диск', 'диска', 'дисков')}`;
   else if (t.search) {
     const s = t.search;
-    a = (s.done ? '' : '<div class="spin"></div>') + `<b>Найдено ${nf.format(t.vis.length)}</b> · просмотрено ${nf.format(s.scanned)} в «${esc(baseName(s.root))}»`;
+    a = (s.done ? '' : '<div class="spin"></div>') + `<b>Найдено ${nf.format(t.idx.size)}</b> · просмотрено ${nf.format(s.scanned)} в «${esc(baseName(s.root))}»`;
   } else if (!t.loading) {
-    a = countText(t.vis.length);
+    a = countText(t.idx.size);
     if (t.filter) a += ` из ${nf.format(t.items.filter(e => S.hidden || !e.hid).length)}`;
     const hidden = S.hidden ? 0 : t.items.filter(e => e.hid).length;
     if (hidden && !t.filter) a += ` · скрытых ${hidden}`;
@@ -876,7 +1051,7 @@ function toggleSel(t, k) { if (t.sel.has(k)) t.sel.delete(k); else t.sel.add(k);
 function rangeTo(t, k, add) {
   const a = t.anchor != null && t.idx.has(t.anchor) ? t.idx.get(t.anchor) : 0, b = t.idx.get(k);
   if (!add) t.sel = new Set();
-  for (let i = Math.min(a, b); i <= Math.max(a, b); i++) t.sel.add(key(t.vis[i].p));
+  for (let i = Math.min(a, b); i <= Math.max(a, b); i++) if (!t.vis[i].hdr) t.sel.add(key(t.vis[i].p));
   t.cur = k;
 }
 function reveal() {
@@ -891,7 +1066,11 @@ function moveCur(delta, shift, ctrl) {
   const t = tab(), n = t.vis.length;
   if (!n) return;
   let i = curIndex(t);
-  const j = i < 0 ? (delta > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, i + delta));
+  let j = i < 0 ? (delta > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, i + delta));
+  const step = delta > 0 ? 1 : -1;
+  while (t.vis[j] && t.vis[j].hdr) j += step;
+  if (!t.vis[j]) { j = Math.max(0, Math.min(n - 1, j)); while (t.vis[j] && t.vis[j].hdr) j -= step; }
+  if (!t.vis[j]) return;
   const k = key(t.vis[j].p);
   if (shift) rangeTo(t, k, ctrl); else if (ctrl) t.cur = k; else selectOnly(t, k);
   reveal(); paintSel();
@@ -900,8 +1079,28 @@ const itemEl = el => el && el.closest && el.closest('.row,.tile');
 
 // ---------------------------------------------------------------- действия
 function openEntry(e, newtab) {
-  if (e.dir) { if (newtab) { newTab(e.p, act + 1, false); } else go(tab(), e.p); }
-  else call('open', {p: e.p}).catch(err => toast(err, true));
+  if (e.dir || (e.ext === 'zip' && !e.z)) { if (newtab) { newTab(e.p, act + 1, false); } else go(tab(), e.p); }
+  else if (e.z) runOp(() => call('zopen', {zip: e.z.zip, items: [e.z.inner]}));
+  else { call('open', {p: e.p}).catch(err => toast(err, true)); noteOpened(e.p); }
+}
+function noteOpened(p) {
+  S.opened = [[p, Date.now()], ...S.opened.filter(x => key(x[0]) !== key(p))].slice(0, 100);
+  saveSoon();
+}
+async function extract(zip, items, dst) {
+  const r = await runOp(() => call('zextract', {zip, items, dst}));
+  if (r) { remember('распаковка', r.map(p => ({k: 'delete', src: p}))); toast('Распаковано в «' + baseName(dst) + '»'); }
+  reloadSoon();
+}
+async function compress() {
+  const t = tab(), s = selEntries(t);
+  if (!s.length || inZip(t) || isPC(t.path)) return;
+  const dir = hasLoc(t) ? dirOf(s[0].p) : t.path;
+  const name = s.length === 1 ? s[0].n.replace(/\.[^.]+$/, '') || s[0].n : baseName(dir);
+  let dst = join(dir, name + '.zip');
+  for (let i = 2; (await call('stat', {p: dst})).ok; i++) dst = join(dir, `${name} (${i}).zip`);
+  const ok = await runOp(async () => { await call('zcreate', {src: s.map(e => e.p), p: dst}); return true; });
+  if (ok) { remember('архивирование', [{k: 'delete', src: dst}]); t.wantSel = dst; toast('Создан архив «' + baseOf(dst) + '»'); load(t, true); }
 }
 function openSel(newtab) {
   const t = tab(), s = selEntries(t);
@@ -912,8 +1111,14 @@ function openSel(newtab) {
   for (const f of files) openEntry(f);
 }
 async function copySel(cut) {
-  const s = selEntries(tab());
+  const t = tab(), s = selEntries(t);
   if (!s.length) return;
+  if (inZip(t)) {
+    if (cut) return toast('Архив только для чтения', true);
+    const n = await runOp(() => call('zclip', {zip: zipOf(t.path).zip, items: s.map(e => e.z.inner)}));
+    if (n) toast('Скопировано из архива: ' + countText(n));
+    return;
+  }
   await call('clip', {k: cut ? 'cut' : 'copy', src: s.map(e => e.p)});
   cutSet = cut ? new Set(s.map(e => key(e.p))) : new Set();
   render();
@@ -927,26 +1132,31 @@ async function runOp(fn, label) {
 async function paste(dst) {
   const t = tab();
   dst = dst || t.path;
-  if (isPC(dst) || t.search && !arguments.length) return;
-  const r = await runOp(() => call('paste', {p: dst}));
+  if (isVirt(dst) || zipOf(dst)) return toast(zipOf(dst) ? 'Архив только для чтения' : 'Сюда нельзя вставить', true);
+  if (t.search && !arguments.length) return;
+  const r = await runOp(() => opCall('paste', {p: dst}, 'Вставка'));
   if (!r) return;
   if (r.none) return toast('В буфере обмена нет файлов');
   cutSet.clear();
+  remember(r.x.cut ? 'перемещение' : 'вставка', inverse(r.pairs));
   if (!r.aborted) toast((r.x.cut ? 'Перемещено: ' : 'Вставлено: ') + countText(r.x.n));
   reloadSoon();
 }
 async function doMove(src, dst, copy) {
-  const r = await runOp(() => call('op', {k: copy ? 'copy' : 'move', src, dst}));
+  const r = await runOp(() => callOp(src.map(s => copy ? {k: 'copy', src: s, dst} : {k: 'move', src: s, dst}), copy ? 'Копирование' : 'Перемещение'));
+  if (r) remember(copy ? 'копирование' : 'перемещение', inverse(r.pairs));
   if (r && !r.aborted) toast((copy ? 'Скопировано в «' : 'Перемещено в «') + baseName(dst) + '»');
   reloadSoon();
 }
 async function del(perm) {
   const t = tab(), s = selEntries(t);
   if (!s.length) return;
+  if (inZip(t)) return toast('Архив только для чтения', true);
   if (perm && !await confirmBox(`Удалить навсегда ${s.length === 1 ? '«' + s[0].n + '»' : countText(s.length)}?`, 'Файлы не попадут в корзину. Это нельзя отменить.', 'Удалить')) return;
   const last = Math.max(...s.map(e => t.idx.get(key(e.p))));
   const next = t.vis.slice(last + 1).find(e => !t.sel.has(key(e.p))) || t.vis.slice(0, last).reverse().find(e => !t.sel.has(key(e.p)));
-  const r = await runOp(() => call('op', {k: perm ? 'purge' : 'delete', src: s.map(e => e.p)}));
+  const r = await runOp(() => callOp(s.map(e => ({k: perm ? 'purge' : 'delete', src: e.p})), perm ? 'Удаление' : 'В корзину'));
+  if (r && !perm) remember('удаление', inverse(r.pairs));
   if (r && !r.aborted) { toast(perm ? 'Удалено' : 'Перемещено в корзину'); if (next) t.wantSel = next.p; t.sel.clear(); }
   load(t, true);
 }
@@ -956,14 +1166,16 @@ function copyPath() {
   if (!text) return;
   call('cliptext', {t: text}).then(() => toast('Путь скопирован'));
 }
-function props() { const t = tab(), e = curEntry(t); const p = e ? e.p : t.path; if (!isPC(p)) send('props', {p}); }
-function term() { const t = tab(); const e = selEntries(t).length === 1 && selEntries(t)[0]; send('term', {p: e && e.dir ? e.p : isPC(t.path) ? homePath() : t.path}); }
+function props() { const t = tab(), e = curEntry(t); const p = e && !e.z ? e.p : inZip(t) ? zipOf(t.path).zip : t.path; if (!isVirt(p)) send('props', {p}); }
+function term() { const t = tab(); const e = selEntries(t).length === 1 && selEntries(t)[0]; send('term', {p: e && e.dir && !e.z ? e.p : isVirt(t.path) ? homePath() : inZip(t) ? dirOf(zipOf(t.path).zip) : t.path}); }
 async function newItem(kind) {
   const t = tab();
-  if (isPC(t.path) || t.search) return;
+  if (isVirt(t.path) || t.search) return;
+  if (inZip(t)) return toast('Архив только для чтения', true);
   try {
     const name = await call(kind === 'dir' ? 'mkdir' : 'mkfile', {p: t.path});
     t.wantSel = join(t.path, name);
+    remember(kind === 'dir' ? 'новая папка' : 'новый файл', [{k: 'delete', src: t.wantSel}]);
     await load(t, true);
     startRename();
   } catch (e) { toast(e, true); }
@@ -971,6 +1183,7 @@ async function newItem(kind) {
 function startRename() {
   const t = tab(), e = curEntry(t);
   if (!e) return;
+  if (e.z) return toast('Архив только для чтения', true);
   const k = key(e.p);
   selectOnly(t, k); reveal(); paintSel();
   const el = nodes.get(k);
@@ -990,7 +1203,8 @@ function startRename() {
     renamingEl = null; el.remove(); nodes.delete(k); render(); scroller.focus();
     if (!ok || !v || v === e.n) return;
     if (/[\\/:*?"<>|]/.test(v)) return toast('Имя не может содержать \\ / : * ? " < > |', true);
-    const r = await runOp(() => call('op', {k: 'rename', p: e.p, name: v}));
+    const r = await runOp(() => callOp([{k: 'rename', src: e.p, name: v}], 'Переименование'));
+    if (r) remember('переименование', inverse(r.pairs));
     if (r && !r.aborted) t.wantSel = join(dirOf(e.p), v);
     if (t.search) { const it = t.search.items.find(x => x === e); if (it && r && !r.aborted) { Object.assign(it, mkSearch([join(dirOf(e.p), v), e.f, e.s, e.t])); recompute(t); render(); } }
     else load(t, true);
@@ -1023,7 +1237,7 @@ let sidSeq = 0, searchPaint = 0;
 function deepSearch(q) {
   const t = tab();
   q = q.trim();
-  if (isPC(t.path) || !q) return;
+  if (isVirt(t.path) || inZip(t) || !q) return;
   const root = t.search ? t.search.root : t.path;
   const sid = ++sidSeq;
   t.search = {q, root, sid, items: [], done: false, scanned: 0};
@@ -1077,13 +1291,17 @@ async function preview() {
     }
     const shown = t.items.filter(x => S.hidden || !x.hid);
     const dirs = shown.filter(x => x.dir).length, files = shown.length - dirs;
-    el.innerHTML = `<div class="pvbig">${FOLDER}</div><div class="pvn">${esc(baseName(t.path))}</div><div class="pvm">${t.search ? 'Результаты поиска' : countText(shown.length)}</div><dl class="pvi"><dt>Папок</dt><dd>${nf.format(dirs)}</dd><dt>Файлов</dt><dd>${nf.format(files)}</dd><dt>Файлы здесь</dt><dd>${fmtSize(t.items.reduce((a, x) => a + (x.dir ? 0 : x.s), 0))}</dd><dt>Путь</dt><dd>${esc(t.path)}</dd></dl>${hint}`;
+    el.innerHTML = `<div class="pvbig">${FOLDER}</div><div class="pvn">${esc(baseName(t.path))}</div><div class="pvm">${t.search ? 'Результаты поиска' : countText(shown.length)}</div><dl class="pvi"><dt>Папок</dt><dd>${nf.format(dirs)}</dd><dt>Файлов</dt><dd>${nf.format(files)}</dd><dt>Файлы здесь</dt><dd>${fmtSize(t.items.reduce((a, x) => a + (x.dir ? 0 : x.s), 0))}</dd>${isVirt(t.path) ? '' : `<dt>Путь</dt><dd>${esc(t.path)}</dd>`}</dl>${hint}`;
     return;
   }
   const k = key(e.p) + '|' + e.t + '|' + e.s;
   if (k === pvKey) return; pvKey = k;
   const raw = HOST + 'raw?p=' + enc(e.p);
   let media = '', box = false;
+  if (e.z) {
+    el.innerHTML = `<div class="pvmedia"><div class="pvbig">${e.dir ? FOLDER : bigIcon(e)}</div></div><div class="pvn">${esc(e.n)}</div><div class="pvm">${esc(e.tn)}${e.dir ? '' : ' · ' + fmtSize(e.s)} · в архиве</div><dl class="pvi"><dt>Изменён</dt><dd>${fmtFull(e.t)}</dd></dl>${hint}`;
+    return;
+  }
   const big = ['psd', 'raw', 'cr2', 'nef', 'arw', 'dng', 'heic', 'heif', 'tif', 'tiff'];
   if (e.k === 'image' && !big.includes(e.ext)) { media = `<img class="pvimg" src="${raw}">`; }
   else if (e.k === 'video' && ['mp4', 'webm', 'm4v', 'mov'].includes(e.ext)) { media = `<video src="${raw}" controls muted loop preload="metadata"></video>`; }
@@ -1100,6 +1318,16 @@ async function preview() {
   }
   if (e.dir) { pvDir = e.p; send('dirsize', {p: e.p}); }
   else cancelSize();
+  if (e.ext === 'zip') {
+    try {
+      const list = await call('zlist', {zip: e.p, p: ''});
+      if (pvKey !== k) return;
+      const box = document.createElement('div');
+      box.className = 'pvzip';
+      box.innerHTML = list.slice(0, 40).map(a => `<div>${a[1] & 1 ? FOLDER : svg(G[KIND[(a[0].split('.').pop() || '').toLowerCase()]] || G.file)}${esc(a[0])}</div>`).join('') + (list.length > 40 ? `<small>и ещё ${list.length - 40}</small>` : '') + (list.length ? '' : '<small>Архив пуст</small>');
+      el.querySelector('.pvmedia').replaceWith(box);
+    } catch (err) {}
+  }
   if (TEXT_KINDS.has(e.k) || (e.k === 'file' && e.s < 2e6)) {
     try {
       const r = await call('text', {p: e.p});
@@ -1165,10 +1393,25 @@ function itemMenu(x, y, shift) {
   const t = tab(), s = selEntries(t);
   if (!s.length) return;
   const one = s.length === 1 ? s[0] : null, dir = one && one.dir;
+  if (inZip(t)) {
+    const z = zipOf(t.path);
+    return menu(x, y, [
+      {t: 'Открыть', k: 'Enter', b: true, f: () => openSel()},
+      {t: 'Копировать', k: 'Ctrl+C', f: () => copySel(false)},
+      '-',
+      {t: `Извлечь в «${baseName(dirOf(z.zip))}»`, f: () => extract(z.zip, s.map(e => e.z.inner), dirOf(z.zip))},
+    ]);
+  }
+  const isZip = one && one.ext === 'zip';
+  const stem = isZip ? one.n.replace(/\.zip$/i, '') : '';
   menu(x, y, [
     {t: 'Открыть', k: 'Enter', b: true, f: () => openSel()},
     dir && {t: 'Открыть в новой вкладке', k: 'Ctrl+Enter', f: () => openSel(true)},
+    isZip && {t: 'Открыть в программе', f: () => call('open', {p: one.p})},
     one && !dir && {t: 'Открыть с помощью…', f: () => send('openwith', {p: one.p})},
+    isZip && '-',
+    isZip && {t: 'Извлечь сюда', f: () => extract(one.p, [], dirOf(one.p))},
+    isZip && {t: `Извлечь в «${stem}»`, f: () => extract(one.p, [], join(dirOf(one.p), stem))},
     t.search && one && {t: 'Перейти к расположению', f: () => go(t, one.loc, {select: one.p})},
     '-',
     {t: 'Вырезать', k: 'Ctrl+X', f: () => copySel(true)},
@@ -1178,6 +1421,7 @@ function itemMenu(x, y, shift) {
     '-',
     one && {t: 'Переименовать', k: 'F2', f: startRename},
     {t: 'Удалить', k: 'Del', f: () => del(false)},
+    !isZip && {t: 'Сжать в ZIP', f: compress},
     '-',
     dir && {t: isPinned(one.p) ? 'Открепить' : 'Закрепить в боковой панели', f: () => togglePin(one.p)},
     dir && {t: 'Открыть в терминале', f: () => send('term', {p: one.p})},
@@ -1190,6 +1434,21 @@ function itemMenu(x, y, shift) {
 async function bgMenu(x, y) {
   const t = tab();
   if (isPC(t.path)) return;
+  if (t.path === 'recent') return menu(x, y, [
+    {row: 'Вид', opts: [['list', 'Список'], ['grid', 'Плитка']], cur: S.view, f: setView},
+    {row: 'Группы', opts: [['none', 'Нет'], ['date', 'Дата'], ['type', 'Тип']], cur: S.group, f: setGroup},
+    {t: 'Обновить', k: 'F5', f: refresh},
+  ]);
+  if (inZip(t)) {
+    const z = zipOf(t.path), stem = baseOf(z.zip).replace(/\.zip$/i, '');
+    return menu(x, y, [
+      {t: `Извлечь всё в «${stem}»`, b: true, f: () => extract(z.zip, z.inner ? [z.inner] : [], join(dirOf(z.zip), stem))},
+      {t: 'Извлечь всё рядом с архивом', f: () => extract(z.zip, z.inner ? [z.inner] : [], dirOf(z.zip))},
+      '-',
+      {row: 'Вид', opts: [['list', 'Список'], ['grid', 'Плитка']], cur: S.view, f: setView},
+      {t: 'Обновить', k: 'F5', f: refresh},
+    ]);
+  }
   let clip = 0;
   try { clip = await call('clipinfo'); } catch (e) {}
   menu(x, y, [
@@ -1200,6 +1459,7 @@ async function bgMenu(x, y) {
     '-',
     {row: 'Вид', opts: [['list', 'Список'], ['grid', 'Плитка']], cur: S.view, f: setView},
     {row: 'Порядок', opts: [['name', 'Имя'], ['date', 'Дата'], ['type', 'Тип'], ['size', 'Размер']], cur: S.sort.k, f: setSort},
+    S.view === 'list' && {row: 'Группы', opts: [['none', 'Нет'], ['date', 'Дата'], ['type', 'Тип']], cur: S.group, f: setGroup},
     {t: 'Скрытые файлы', check: S.hidden, k: 'Ctrl+H', f: toggleHidden},
     '-',
     {t: isPinned(t.path) ? 'Открепить папку' : 'Закрепить папку', f: () => togglePin(t.path)},
@@ -1236,6 +1496,18 @@ const CMDS = [
   ['Обновить', 'F5', () => refresh()],
   ['Этот компьютер', '', () => go(tab(), 'pc')],
   ['Корзина', '', () => send('explorer', {p: 'shell:RecycleBinFolder'})],
+  ['Недавние файлы', '', () => go(tab(), 'recent')],
+  ['Отменить', 'Ctrl+Z', () => undo(false)],
+  ['Повторить', 'Ctrl+Y', () => undo(true)],
+  ['Новое окно', 'Ctrl+N', () => newWindow(false)],
+  ['Два окна рядом', '', () => newWindow(true)],
+  ['Сжать выбранное в ZIP', '', () => compress()],
+  ['Группировать по дате', '', () => setGroup('date')],
+  ['Группировать по типу', '', () => setGroup('type')],
+  ['Без групп', '', () => setGroup('none')],
+  ['Открывать папки в Files', '', () => setDefault(true)],
+  ['Открывать папки в Проводнике', '', () => setDefault(false)],
+  ['Подключиться к компьютеру в сети', '', () => editPath('\\\\')],
 ];
 let palItems = [], palSel = 0, palOpen = false;
 function fuzzy(q, s) {
@@ -1266,7 +1538,7 @@ function palFill() {
   for (const k of B.known) place(k.path, k.name, 'Папки', svg(UI[k.key] || UI.documents));
   for (const d of drives) place(d.root, driveName(d), 'Диски', svg(UI[d.kind] || UI.disk));
   for (const p of S.recent) place(p, baseName(p), 'Недавние', FOLDER);
-  if (!isPC(t.path)) for (const e of t.vis.slice(0, 3000)) out.push({grp: 'В этой папке', n: e.n, sub: '', ic: e.dir ? FOLDER : svg(G[e.k] || G.file), f: () => { selectOnly(t, key(e.p)); reveal(); paintSel(); if (e.dir) go(t, e.p); else openEntry(e); }});
+  if (!isPC(t.path)) for (const e of t.vis.filter(x => !x.hdr).slice(0, 3000)) out.push({grp: 'В этой папке', n: e.n, sub: '', ic: e.dir ? FOLDER : svg(G[e.k] || G.file), f: () => { selectOnly(t, key(e.p)); reveal(); paintSel(); if (e.dir) go(t, e.p); else openEntry(e); }});
   for (const [n, k, f] of CMDS) out.push({grp: 'Команды', n, sub: '', kbd: k, ic: svg(UI.cmd), f});
   let res;
   if (!q) res = out.filter(x => x.grp !== 'В этой папке').slice(0, 40).map(x => ({...x, m: []}));
@@ -1323,11 +1595,12 @@ function confirmBox(title, text, ok) {
 
 // ---------------------------------------------------------------- адресная строка
 let sugg = [], suggSel = -1, suggT;
-function editPath() {
+function editPath(prefill) {
   const t = tab();
   $('#path').classList.add('edit');
   const inp = $('#pathin');
-  inp.value = isPC(t.path) ? '' : t.path; inp.focus(); inp.select();
+  inp.value = prefill != null ? prefill : isVirt(t.path) ? '' : t.path; inp.focus();
+  if (prefill != null) inp.setSelectionRange(inp.value.length, inp.value.length); else inp.select();
 }
 function endEdit() { $('#path').classList.remove('edit'); $('#sugg').classList.remove('on'); sugg = []; }
 async function submitPath(v) {
@@ -1336,6 +1609,8 @@ async function submitPath(v) {
   if (!v) return;
   if (/^shell:/i.test(v)) return send('explorer', {p: v});
   if (/^(этот компьютер|pc)$/i.test(v)) return go(tab(), 'pc');
+  if (/^(недавние|recent)$/i.test(v)) return go(tab(), 'recent');
+  if (/^\\\\[^\\]+\\?$/.test(v)) return go(tab(), v.replace(/\\$/, ''));
   v = v.replace(/%([^%]+)%/g, (m, n) => ({userprofile: homePath()}[n.toLowerCase()] || m));
   if (v === '~') v = homePath(); else if (v.startsWith('~\\') || v.startsWith('~/')) v = join(homePath(), v.slice(2));
   const p = norm(/^[a-z]:|^\\\\/i.test(v) || isPC(tab().path) ? v : join(tab().path, v));
@@ -1400,6 +1675,26 @@ $('#findx').addEventListener('mousedown', e => { e.preventDefault(); const t = t
 
 // ---------------------------------------------------------------- мышь в списке
 let pendingSingle = null, suppressClick = false;
+/** Перетаскивание начинается системным (OLE) — так файлы можно бросить в Проводник, Telegram, браузер. */
+function armDrag(e, el) {
+  if (el === renamingEl) return;
+  const x0 = e.clientX, y0 = e.clientY;
+  const mv = ev => {
+    if (!(ev.buttons & 1)) return off();
+    if (Math.abs(ev.clientX - x0) + Math.abs(ev.clientY - y0) < 7) return;
+    off();
+    const t = tab();
+    if (!t.sel.has(el.dataset.k)) { selectOnly(t, el.dataset.k); paintSel(); }
+    pendingSingle = null;
+    const s = selEntries(t);
+    if (!s.length) return;
+    dragSrc = s.map(x => x.p);
+    if (inZip(t)) { dragSrc = null; call('zdrag', {zip: zipOf(t.path).zip, items: s.map(x => x.z.inner)}).catch(err => toast(err, true)); }
+    else send('dragout', {src: dragSrc});
+  };
+  const off = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', off); };
+  addEventListener('mousemove', mv); addEventListener('mouseup', off);
+}
 scroller.addEventListener('mousedown', e => {
   if (e.target === scroller && e.offsetX >= scroller.clientWidth) return; // полоса прокрутки
   const el = itemEl(e.target), t = tab();
@@ -1409,6 +1704,7 @@ scroller.addEventListener('mousedown', e => {
     const k = el.dataset.k;
     if (e.button === 2) { if (!t.sel.has(k)) { selectOnly(t, k); paintSel(); } return; }
     if (e.button !== 0) return;
+    armDrag(e, el);
     if (e.ctrlKey && e.shiftKey) rangeTo(t, k, true);
     else if (e.ctrlKey) toggleSel(t, k);
     else if (e.shiftKey) rangeTo(t, k, false);
@@ -1449,6 +1745,7 @@ function startBand(e) {
       const ty = g.pad + row * g.rowH;
       if (S.view === 'list') { if (y1 < ty + 3 || y0 > ty + g.rowH - 3) continue; }
       else { const tx = 8 + c * g.tw; if (x1 < tx || x0 > tx + g.tw - 8 || y1 < ty || y0 > ty + 120) continue; }
+      if (t.vis[i].hdr) continue;
       const k = key(t.vis[i].p);
       if (ctrl && base.has(k)) sel.delete(k); else sel.add(k);
     }
@@ -1472,12 +1769,23 @@ function startBand(e) {
   addEventListener('mousemove', mv); addEventListener('mouseup', upf);
 }
 
+$('#head').addEventListener('contextmenu', e => {
+  e.preventDefault();
+  menu(e.clientX, e.clientY, [
+    {t: 'Изменён', check: S.cols.date, f: () => toggleCol('date')},
+    {t: 'Тип', check: S.cols.type, f: () => toggleCol('type')},
+    {t: 'Размер', check: S.cols.size, f: () => toggleCol('size')},
+    '-',
+    {row: 'Группы', opts: [['none', 'Нет'], ['date', 'Дата'], ['type', 'Тип']], cur: S.group, f: setGroup},
+  ]);
+});
 $('#head').addEventListener('click', e => { const d = e.target.closest('[data-k]'); if (d && d.dataset.k !== 'loc') setSort(d.dataset.k); });
 $('#pcview').addEventListener('click', e => { const el = e.target.closest('[data-p]'); if (el) go(tab(), el.dataset.p); });
 $('#pcview').addEventListener('auxclick', e => { const el = e.target.closest('[data-p]'); if (el && e.button === 1) newTab(el.dataset.p, act + 1, false); });
 
 // ---------------------------------------------------------------- боковая панель и вкладки
 $('#side').addEventListener('click', e => {
+  if (e.target.closest('[data-act="connect"]')) return editPath('\\\\');
   const el = e.target.closest('.si[data-p]');
   if (!el) return;
   const p = el.dataset.p;
@@ -1530,7 +1838,31 @@ $('#wmax').onclick = () => send('win', {k: 'max'});
 $('#wclose').onclick = () => send('win', {k: 'close'});
 $('#back').onclick = back; $('#fwd').onclick = fwd; $('#up').onclick = up;
 $('#vlist').onclick = () => setView('list'); $('#vgrid').onclick = () => setView('grid');
-$('#vprev').onclick = togglePreview; $('#menu').onclick = palette;
+$('#vprev').onclick = togglePreview;
+$('#menu').onclick = settingsMenu;
+async function settingsMenu() {
+  const r = $('#menu').getBoundingClientRect();
+  let def = false;
+  try { def = await call('isdefault'); } catch (e) {}
+  menu(r.right - 250, r.bottom + 6, [
+    {t: 'Новое окно', k: 'Ctrl+N', f: () => newWindow(false)},
+    {t: 'Два окна рядом', f: () => newWindow(true)},
+    '-',
+    {row: 'Вид', opts: [['list', 'Список'], ['grid', 'Плитка']], cur: S.view, f: setView},
+    {row: 'Группы', opts: [['none', 'Нет'], ['date', 'Дата'], ['type', 'Тип']], cur: S.group, f: setGroup},
+    {t: 'Скрытые файлы', check: S.hidden, k: 'Ctrl+H', f: toggleHidden},
+    {t: 'Панель просмотра', check: S.preview, k: 'Пробел', f: togglePreview},
+    '-',
+    {t: 'Открывать папки в Files', check: def, f: () => setDefault(!def)},
+    '-',
+    {t: 'Все команды', k: 'Ctrl+K', f: palette},
+  ]);
+}
+async function setDefault(on) {
+  const ok = await call('setdefault', {on});
+  toast(ok ? (on ? 'Папки и Win+E теперь открываются в Files' : 'Папки снова открываются в Проводнике') : 'Не удалось изменить настройку', !ok);
+}
+function newWindow(side) { const t = tab(); send('newwin', {p: isVirt(t.path) || inZip(t) ? '' : t.path, side}); }
 document.addEventListener('mouseup', e => { if (e.button === 3) back(); if (e.button === 4) fwd(); });
 
 // разделители панелей
@@ -1550,19 +1882,8 @@ function applyLayout() {
 }
 
 // ---------------------------------------------------------------- перетаскивание
-scroller.addEventListener('dragstart', e => {
-  const el = itemEl(e.target);
-  if (!el) return;
-  const t = tab(), k = el.dataset.k;
-  if (!t.sel.has(k)) { selectOnly(t, k); paintSel(); }
-  pendingSingle = null;
-  const s = selEntries(t);
-  dragSrc = s.map(x => x.p);
-  e.dataTransfer.setData('application/x-files', JSON.stringify(dragSrc));
-  e.dataTransfer.effectAllowed = 'copyMove';
-  const g = $('#ghost'); g.textContent = s.length === 1 ? s[0].n : countText(s.length);
-  e.dataTransfer.setDragImage(g, -14, -10);
-});
+// сами строки не тянутся через HTML5 — перетаскивание делает система (armDrag → dragout)
+scroller.addEventListener('dragstart', e => e.preventDefault());
 document.addEventListener('dragend', () => { dragSrc = null; setDrop(null); });
 let tabHover = null, tabHoverT;
 function dropTarget(e) {
@@ -1589,7 +1910,7 @@ function effectFor(e, dst) {
 }
 document.addEventListener('dragover', e => {
   const types = [...e.dataTransfer.types];
-  const internal = types.includes('application/x-files'), external = types.includes('Files');
+  const internal = !!dragSrc || types.includes('application/x-files'), external = types.includes('Files');
   if (!internal && !external) return;
   const tg = dropTarget(e);
   if (tg && tg.tab != null && tg.tab !== act) { if (tabHover !== tg.tab) { tabHover = tg.tab; clearTimeout(tabHoverT); tabHoverT = setTimeout(() => activate(tabHover), 600); } }
@@ -1614,13 +1935,14 @@ document.addEventListener('drop', e => {
   const types = [...e.dataTransfer.types];
   if (tg.pin) { if (dragSrc) for (const p of dragSrc) { const k = tab().idx.get(key(p)); const en = k != null && tab().vis[k]; if (en && en.dir && !isPinned(p)) S.pins.push(p); } paintSide(); saveSoon(); return; }
   if (!tg.p) return;
-  if (types.includes('application/x-files') && dragSrc) { doMove(dragSrc, tg.p, effectFor(e, tg.p) === 'copy'); }
+  if (dragSrc) { const src = dragSrc; dragSrc = null; doMove(src, tg.p, effectFor(e, tg.p) === 'copy'); }
   else if (types.includes('Files') && e.dataTransfer.files.length) {
-    const id = ++rid;
-    const pr = new Promise((res, rej) => waits.set(id, {res, rej}));
-    wv.postMessageWithAdditionalObjects({c: 'drop', id, p: tg.p, copy: !e.shiftKey}, e.dataTransfer.files);
-    busyN++; prog(true);
-    pr.then(r => { if (r && r.n && !r.aborted) toast('Добавлено: ' + countText(r.x ? r.x.n : r.n)); }).catch(err => toast(err, true)).finally(() => { busyN--; prog(false); reloadSoon(); });
+    runOp(() => opCall('drop', {p: tg.p, copy: !e.shiftKey}, e.shiftKey ? 'Перемещение' : 'Копирование', e.dataTransfer.files)).then(r => {
+      if (!r) return;
+      remember(e.shiftKey ? 'перемещение' : 'копирование', inverse(r.pairs));
+      if (r.x && r.x.n && !r.aborted) toast('Добавлено: ' + countText(r.x.n));
+      reloadSoon();
+    });
   }
 });
 
@@ -1647,6 +1969,7 @@ document.addEventListener('keydown', e => {
   if (C && code === 'KeyH') { stop(); return toggleHidden(); }
   if (C && code === 'Backquote') { stop(); return term(); }
   if (C && Sh && code === 'KeyN') { stop(); return newItem('dir'); }
+  if (C && !Sh && code === 'KeyN') { stop(); return newWindow(false); }
   if (C && Sh && code === 'Digit1') { stop(); return setView('list'); }
   if (C && Sh && code === 'Digit2') { stop(); return setView('grid'); }
   if (inInput || e.target.isContentEditable) return;
@@ -1669,8 +1992,10 @@ document.addEventListener('keydown', e => {
     case 'ContextMenu': stop(); { const el = nodes.get(t.cur) || [...nodes.values()].find(x => x.classList.contains('sel')); if (el && t.sel.size) { const r = el.getBoundingClientRect(); itemMenu(r.left + 40, r.top + r.height / 2, Sh); } else bgMenu(innerWidth / 2, innerHeight / 3); } return;
   }
   if (Sh && k === 'F10') { stop(); const s = selEntries(t); if (s.length) { const el = nodes.get(t.cur); const r = el ? el.getBoundingClientRect() : {left: 200, top: 200, height: 0}; send('menu', {src: s.map(x => x.p), x: r.left + 40, y: r.top + r.height / 2}); } return; }
+  if (C && (code === 'KeyY' || Sh && code === 'KeyZ')) { stop(); return undo(true); }
+  if (C && !Sh && code === 'KeyZ') { stop(); return undo(false); }
   if (C && !Sh) {
-    if (code === 'KeyA') { stop(); t.sel = new Set(t.vis.map(x => key(x.p))); render(); return paintSel(); }
+    if (code === 'KeyA') { stop(); t.sel = new Set(t.vis.filter(x => !x.hdr).map(x => key(x.p))); render(); return paintSel(); }
     if (code === 'KeyC') { stop(); return copySel(false); }
     if (code === 'KeyX') { stop(); return copySel(true); }
     if (code === 'KeyV') { stop(); return paste(); }
@@ -1685,7 +2010,7 @@ document.addEventListener('keydown', e => {
     const n = t.vis.length, start = ta.length === 1 ? curIndex(t) + 1 : Math.max(0, curIndex(t));
     for (let j = 0; j < n; j++) {
       const i = (start + j) % n;
-      if (t.vis[i].lc.startsWith(ta)) { selectOnly(t, key(t.vis[i].p)); reveal(); paintSel(); break; }
+      if ((t.vis[i].lc || '').startsWith(ta)) { selectOnly(t, key(t.vis[i].p)); reveal(); paintSel(); break; }
     }
   }
 });
@@ -1706,6 +2031,8 @@ wv.addEventListener('message', ev => {
       break;
     }
     case 'search': onSearch(m); break;
+    case 'progress': onProgress(m); break;
+    case 'dragdone': dragSrc = null; setDrop(null); pendingSingle = null; reloadSoon(); break;
     case 'dirsize': onDirSize(m); break;
     case 'menu': if (m.verb === 'rename') startRename(); else reloadSoon(); break;
     case 'open': openPath(m.p, true); break;
@@ -1737,7 +2064,7 @@ function boot() {
 (async function init() {
   applyLayout();
   refreshDrives();
-  const list = B.test ? [] : Array.isArray(S.tabs) && S.tabs.length ? S.tabs : [];
+  const list = B.test || B.secondary ? [] : Array.isArray(S.tabs) && S.tabs.length ? S.tabs : [];
   for (const p of list) newTab(p, undefined, false);
   act = Math.max(0, Math.min(S.active || 0, tabs.length - 1));
   initDone = true;

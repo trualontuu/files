@@ -1,7 +1,7 @@
 //! Windows Shell: открытие, операции с файлами, буфер обмена, системное контекстное меню.
 
 use std::cell::RefCell;
-use windows::core::{w, Interface, HRESULT, HSTRING, PCSTR, PCWSTR, PSTR};
+use windows::core::{w, Interface, HSTRING, PCSTR, PCWSTR, PSTR};
 use windows::Win32::Foundation::*;
 use windows::Win32::System::Com::*;
 use windows::Win32::System::DataExchange::*;
@@ -11,10 +11,6 @@ use windows::Win32::System::Ole::CF_HDROP;
 use windows::Win32::UI::Shell::Common::ITEMIDLIST;
 use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
-
-pub fn item(p: &str) -> windows::core::Result<IShellItem> {
-    unsafe { SHCreateItemFromParsingName(&HSTRING::from(p), None) }
-}
 
 fn parent_of(p: &str) -> String {
     std::path::Path::new(p).parent().map(|x| x.to_string_lossy().into_owned()).unwrap_or_default()
@@ -60,73 +56,6 @@ pub fn terminal(dir: &str) {
     let ok = std::process::Command::new("wt.exe").args(["-d", dir]).spawn().is_ok();
     if !ok {
         let _ = std::process::Command::new("powershell.exe").current_dir(dir).creation_flags(0x10).spawn();
-    }
-}
-
-// ---------------------------------------------------------------- операции
-
-pub enum Op {
-    Copy(Vec<String>, String),
-    Move(Vec<String>, String),
-    Delete(Vec<String>, bool),
-    Rename(String, String),
-}
-
-/// Выполняет операцию через IFileOperation (в потоке STA). Возвращает true, если пользователь что-то отменил.
-pub fn run(hwnd: HWND, op: Op) -> Result<bool, String> {
-    unsafe {
-        let fo: IFileOperation = CoCreateInstance(&FileOperation, None, CLSCTX_ALL).map_err(|e| e.message())?;
-        let _ = fo.SetOwnerWindow(hwnd);
-        let mut fl = FOF_ALLOWUNDO.0 | FOF_NOCONFIRMMKDIR.0 | FOFX_ADDUNDORECORD.0 as u32;
-        match &op {
-            Op::Copy(src, dst) => {
-                // вставка в ту же папку — «имя - копия», как в Проводнике
-                if src.iter().any(|s| parent_of(s).eq_ignore_ascii_case(dst.trim_end_matches('\\')) || parent_of(s).eq_ignore_ascii_case(dst)) {
-                    fl |= FOF_RENAMEONCOLLISION.0;
-                }
-                fo.SetOperationFlags(FILEOPERATION_FLAGS(fl)).map_err(|e| e.message())?;
-                let d = item(dst).map_err(|e| e.message())?;
-                for s in src {
-                    let si = item(s).map_err(|e| e.message())?;
-                    fo.CopyItem(&si, &d, PCWSTR::null(), None).map_err(|e| e.message())?;
-                }
-            }
-            Op::Move(src, dst) => {
-                fo.SetOperationFlags(FILEOPERATION_FLAGS(fl)).map_err(|e| e.message())?;
-                let d = item(dst).map_err(|e| e.message())?;
-                for s in src {
-                    if parent_of(s).eq_ignore_ascii_case(dst.trim_end_matches('\\')) {
-                        continue; // в ту же папку — ничего не делаем
-                    }
-                    let si = item(s).map_err(|e| e.message())?;
-                    fo.MoveItem(&si, &d, PCWSTR::null(), None).map_err(|e| e.message())?;
-                }
-            }
-            Op::Delete(src, recycle) => {
-                let f = if *recycle {
-                    FOF_ALLOWUNDO.0 | FOF_NOCONFIRMATION.0 | FOFX_RECYCLEONDELETE.0 as u32 | FOF_WANTNUKEWARNING.0
-                } else {
-                    FOF_NOCONFIRMATION.0
-                };
-                fo.SetOperationFlags(FILEOPERATION_FLAGS(f)).map_err(|e| e.message())?;
-                for s in src {
-                    let si = item(s).map_err(|e| e.message())?;
-                    fo.DeleteItem(&si, None).map_err(|e| e.message())?;
-                }
-            }
-            Op::Rename(p, name) => {
-                fo.SetOperationFlags(FILEOPERATION_FLAGS(fl)).map_err(|e| e.message())?;
-                let si = item(p).map_err(|e| e.message())?;
-                fo.RenameItem(&si, &HSTRING::from(name.as_str()), None).map_err(|e| e.message())?;
-            }
-        }
-        let r = fo.PerformOperations();
-        let aborted = fo.GetAnyOperationsAborted().map(|b| b.as_bool()).unwrap_or(false);
-        match r {
-            Ok(()) => Ok(aborted),
-            Err(e) if e.code() == HRESULT(0x80270000u32 as i32) || e.code() == ERROR_CANCELLED.to_hresult() => Ok(true),
-            Err(e) => Err(e.message()),
-        }
     }
 }
 
@@ -288,25 +217,11 @@ pub fn menu_msg(msg: u32, wp: WPARAM, lp: LPARAM) -> Option<LRESULT> {
 /// Показывает родное меню Проводника для файлов. Возвращает глагол, который должен обработать интерфейс (rename).
 pub fn native_menu(hwnd: HWND, paths: &[String], pt: POINT, extended: bool) -> Option<String> {
     unsafe {
-        let mut pidls: Vec<*mut ITEMIDLIST> = vec![];
-        for p in paths {
-            let mut pidl: *mut ITEMIDLIST = std::ptr::null_mut();
-            if SHParseDisplayName(&HSTRING::from(p.as_str()), None, &mut pidl, 0, None).is_ok() && !pidl.is_null() {
-                pidls.push(pidl);
-            }
-        }
+        let (arr, pidls) = shell_array(paths)?;
         let free = |v: &Vec<*mut ITEMIDLIST>| {
             for &p in v {
                 ILFree(Some(p));
             }
-        };
-        if pidls.is_empty() {
-            return None;
-        }
-        let cpidls: Vec<*const ITEMIDLIST> = pidls.iter().map(|&p| p as *const _).collect();
-        let Ok(arr) = SHCreateShellItemArrayFromIDLists(&cpidls) else {
-            free(&pidls);
-            return None;
         };
         let Ok(cm) = arr.BindToHandler::<_, IContextMenu>(None, &BHID_SFUIObject) else {
             free(&pidls);
@@ -370,5 +285,138 @@ pub fn dark_menus() {
                 flush();
             }
         }
+    }
+}
+
+/// Массив элементов оболочки из путей (+ PIDL, которые надо освободить).
+unsafe fn shell_array(paths: &[String]) -> Option<(IShellItemArray, Vec<*mut ITEMIDLIST>)> {
+    unsafe {
+        let mut pidls: Vec<*mut ITEMIDLIST> = vec![];
+        for p in paths {
+            let mut pidl: *mut ITEMIDLIST = std::ptr::null_mut();
+            if SHParseDisplayName(&HSTRING::from(p.as_str()), None, &mut pidl, 0, None).is_ok() && !pidl.is_null() {
+                pidls.push(pidl);
+            }
+        }
+        if pidls.is_empty() {
+            return None;
+        }
+        let cpidls: Vec<*const ITEMIDLIST> = pidls.iter().map(|&p| p as *const _).collect();
+        match SHCreateShellItemArrayFromIDLists(&cpidls) {
+            Ok(a) => Some((a, pidls)),
+            Err(_) => {
+                for &p in &pidls {
+                    ILFree(Some(p));
+                }
+                None
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- перетаскивание наружу
+
+/// Системное перетаскивание файлов (в Проводник, Telegram, браузер…). Блокирует до отпускания кнопки.
+pub fn drag_out(hwnd: HWND, paths: &[String]) -> u32 {
+    use windows::Win32::System::Ole::*;
+    unsafe {
+        let Some((arr, pidls)) = shell_array(paths) else { return 0 };
+        let mut eff = 0u32;
+        if let Ok(dobj) = arr.BindToHandler::<_, IDataObject>(None, &BHID_DataObject) {
+            let _ = windows::Win32::UI::Input::KeyboardAndMouse::ReleaseCapture();
+            if let Ok(e) = SHDoDragDrop(Some(hwnd), &dobj, None::<&IDropSource>, DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK) {
+                eff = e.0;
+            }
+        }
+        for &p in &pidls {
+            ILFree(Some(p));
+        }
+        eff
+    }
+}
+
+// ---------------------------------------------------------------- вместо Проводника
+
+const WIN_E: &str = r"Software\Classes\CLSID\{52205fd8-5dfb-447d-801a-d0b52f2e83e1}";
+
+fn reg_set(key: &str, name: Option<&str>, val: &str) -> bool {
+    use windows::Win32::System::Registry::*;
+    let data: Vec<u16> = val.encode_utf16().chain(std::iter::once(0)).collect();
+    let hname = name.map(HSTRING::from);
+    unsafe {
+        RegSetKeyValueW(
+            HKEY_CURRENT_USER,
+            &HSTRING::from(key),
+            hname.as_ref().map(|n| PCWSTR(n.as_ptr())).unwrap_or(PCWSTR::null()),
+            REG_SZ.0,
+            Some(data.as_ptr() as _),
+            (data.len() * 2) as u32,
+        )
+        .is_ok()
+    }
+}
+
+fn reg_del_tree(key: &str) {
+    use windows::Win32::System::Registry::*;
+    unsafe {
+        let _ = RegDeleteTreeW(HKEY_CURRENT_USER, &HSTRING::from(key));
+        let _ = RegDeleteKeyW(HKEY_CURRENT_USER, &HSTRING::from(key));
+    }
+}
+
+fn reg_get(key: &str) -> Option<String> {
+    use windows::Win32::System::Registry::*;
+    let mut buf = [0u16; 1024];
+    let mut len = (buf.len() * 2) as u32;
+    unsafe {
+        RegGetValueW(HKEY_CURRENT_USER, &HSTRING::from(key), PCWSTR::null(), RRF_RT_REG_SZ, None, Some(buf.as_mut_ptr() as _), Some(&mut len))
+            .ok()
+            .ok()?;
+    }
+    let n = buf.iter().position(|&c| c == 0).unwrap_or(0);
+    Some(String::from_utf16_lossy(&buf[..n]))
+}
+
+/// Открывать папки и Win+E в Files (только для текущего пользователя, обратимо).
+pub fn set_default(on: bool) -> bool {
+    let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
+    if on {
+        let cmd = format!("\"{exe}\" \"%1\"");
+        let mut ok = true;
+        for cls in ["Directory", "Drive"] {
+            ok &= reg_set(&format!(r"Software\Classes\{cls}\shell"), None, "openinfiles");
+            ok &= reg_set(&format!(r"Software\Classes\{cls}\shell\openinfiles"), None, "Открыть в Files");
+            ok &= reg_set(&format!(r"Software\Classes\{cls}\shell\openinfiles\command"), None, &cmd);
+        }
+        ok &= reg_set(&format!(r"{WIN_E}\shell\opennewwindow\command"), None, &format!("\"{exe}\""));
+        ok &= reg_set(&format!(r"{WIN_E}\shell\opennewwindow\command"), Some("DelegateExecute"), "");
+        ok
+    } else {
+        use windows::Win32::System::Registry::*;
+        for cls in ["Directory", "Drive"] {
+            reg_del_tree(&format!(r"Software\Classes\{cls}\shell\openinfiles"));
+            unsafe {
+                let _ = RegDeleteKeyValueW(HKEY_CURRENT_USER, &HSTRING::from(format!(r"Software\Classes\{cls}\shell").as_str()), PCWSTR::null());
+            }
+        }
+        reg_del_tree(WIN_E);
+        true
+    }
+}
+
+pub fn is_default() -> bool {
+    reg_get(r"Software\Classes\Directory\shell\openinfiles\command").map(|c| c.to_lowercase().contains("files")).unwrap_or(false)
+}
+
+// ---------------------------------------------------------------- окна
+
+/// Рабочая область монитора, на котором окно.
+pub fn work_area(hwnd: HWND) -> RECT {
+    use windows::Win32::Graphics::Gdi::*;
+    unsafe {
+        let mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        let mut mi = MONITORINFO { cbSize: std::mem::size_of::<MONITORINFO>() as u32, ..Default::default() };
+        let _ = GetMonitorInfoW(mon, &mut mi);
+        mi.rcWork
     }
 }

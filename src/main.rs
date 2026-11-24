@@ -2,9 +2,11 @@
 //! Files — ч/б файловый менеджер на Rust поверх WebView2.
 
 mod fsx;
+mod ops;
 mod shell;
 mod thumbs;
 mod wv;
+mod zipx;
 
 use notify::{RecursiveMode, Watcher};
 use serde_json::{json, Value};
@@ -155,6 +157,10 @@ fn save_state() {
     }
 }
 
+fn secondary() -> bool {
+    std::env::args().any(|a| a == "--new-window")
+}
+
 fn test_mode() -> bool {
     std::env::var("FILES_TEST").is_ok()
 }
@@ -171,7 +177,77 @@ fn on_msg(m: Value, files: Vec<String>) {
     let p = m["p"].as_str().unwrap_or("").to_string();
     match c.as_str() {
         "list" => {
-            std::thread::spawn(move || reply(id, fsx::list(&p)));
+            std::thread::spawn(move || {
+                // \\компьютер — список общих папок
+                let server = p.starts_with(r"\\") && !p[2..].trim_end_matches('\\').contains('\\');
+                reply(id, if server { fsx::shares(p.trim_end_matches('\\')) } else { fsx::list(&p) })
+            });
+        }
+        "recent" => {
+            let own: Vec<(String, i64)> = m["own"].as_array().map(|a| a.iter().filter_map(|x| Some((x[0].as_str()?.to_string(), x[1].as_i64()?))).collect()).unwrap_or_default();
+            std::thread::spawn(move || {
+                unsafe {
+                    let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+                }
+                reply(id, Ok(fsx::recent(&own)));
+            });
+        }
+        "zlist" => {
+            let z = m["zip"].as_str().unwrap_or("").to_string();
+            std::thread::spawn(move || reply(id, zipx::list(&z, &p)));
+        }
+        "zextract" => {
+            // распаковать записи архива в папку
+            let z = m["zip"].as_str().unwrap_or("").to_string();
+            let items = arr_str(&m["items"]);
+            let dst = m["dst"].as_str().unwrap_or("").to_string();
+            std::thread::spawn(move || reply(id, zipx::extract(&z, &items, &dst).map(|t| json!(t))));
+        }
+        "zopen" | "zclip" | "zdrag" => {
+            // открыть / скопировать / вытащить файл из архива: сначала во временную папку
+            let z = m["zip"].as_str().unwrap_or("").to_string();
+            let items = arr_str(&m["items"]);
+            let cut = c.clone();
+            std::thread::spawn(move || {
+                let dir = zipx::temp_dir(&z);
+                let r = zipx::extract(&z, &items, &dir.to_string_lossy());
+                match r {
+                    Ok(paths) => {
+                        let hw = MAIN_HWND.load(Ordering::Relaxed);
+                        match cut.as_str() {
+                            "zopen" => {
+                                unsafe {
+                                    let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+                                }
+                                for p in &paths {
+                                    let _ = shell::open(HWND(hw as _), p);
+                                }
+                                reply(id, Ok(Value::Null));
+                            }
+                            "zclip" => {
+                                send_ui(move || {
+                                    shell::clip_set_files(hwnd(), &paths, false);
+                                    reply(id, Ok(json!(paths.len())));
+                                });
+                            }
+                            _ => {
+                                send_ui(move || {
+                                    defer(move || {
+                                        let e = shell::drag_out(hwnd(), &paths);
+                                        post(json!({"ev": "dragdone", "effect": e}));
+                                    });
+                                    reply(id, Ok(Value::Null));
+                                });
+                            }
+                        }
+                    }
+                    Err(e) => reply(id, Err(e)),
+                }
+            });
+        }
+        "zcreate" => {
+            let src = arr_str(&m["src"]);
+            std::thread::spawn(move || reply(id, zipx::create(&src, &p).map(|_| Value::Null)));
         }
         "stat" => reply(id, Ok(fsx::stat(&p))),
         "drives" => {
@@ -196,21 +272,8 @@ fn on_msg(m: Value, files: Vec<String>) {
         "reveal" => shell::reveal(&p),
         "explorer" => shell::explorer(&p),
         "term" => shell::terminal(&p),
-        "op" => {
-            let k = m["k"].as_str().unwrap_or("").to_string();
-            let src = arr_str(&m["src"]);
-            let dst = m["dst"].as_str().unwrap_or("").to_string();
-            let name = m["name"].as_str().unwrap_or("").to_string();
-            let op = match k.as_str() {
-                "copy" => shell::Op::Copy(src, dst),
-                "move" => shell::Op::Move(src, dst),
-                "delete" => shell::Op::Delete(src, true),
-                "purge" => shell::Op::Delete(src, false),
-                "rename" => shell::Op::Rename(p, name),
-                _ => return reply(id, Err("неизвестная операция".into())),
-            };
-            run_op(id, op);
-        }
+        "op" => run_items(id, ops::parse(&m["items"]), Value::Null),
+        "cancelop" => ops::cancel(m["op"].as_u64().unwrap_or(0)),
         "mkdir" | "mkfile" => {
             let r = if c == "mkdir" {
                 let t = fsx::unique(&p, "Новая папка", "");
@@ -239,8 +302,8 @@ fn on_msg(m: Value, files: Vec<String>) {
                 shell::clip_clear(hwnd());
             }
             let n = src.len();
-            let op = if cut { shell::Op::Move(src, p) } else { shell::Op::Copy(src, p) };
-            run_op_then(id, op, json!({"n": n, "cut": cut}));
+            let items = src.into_iter().map(|s| if cut { ops::Item::Move { src: s, dst: p.clone(), name: None } } else { ops::Item::Copy { src: s, dst: p.clone() } }).collect();
+            run_items(id, items, json!({"n": n, "cut": cut}));
         }
         "drop" => {
             // файлы, брошенные из Проводника/других программ
@@ -249,8 +312,40 @@ fn on_msg(m: Value, files: Vec<String>) {
             if n == 0 {
                 return reply(id, Ok(json!({"n": 0})));
             }
-            let op = if copy { shell::Op::Copy(files, p) } else { shell::Op::Move(files, p) };
-            run_op_then(id, op, json!({"n": n}));
+            let items = files.into_iter().map(|s| if copy { ops::Item::Copy { src: s, dst: p.clone() } } else { ops::Item::Move { src: s, dst: p.clone(), name: None } }).collect();
+            run_items(id, items, json!({"n": n, "cut": !copy}));
+        }
+        "dragout" => {
+            let src = arr_str(&m["src"]);
+            defer(move || {
+                let e = shell::drag_out(hwnd(), &src);
+                post(json!({"ev": "dragdone", "effect": e}));
+            });
+        }
+        "setdefault" => {
+            let on = m["on"].as_bool().unwrap_or(false);
+            reply(id, Ok(json!(shell::set_default(on) && shell::is_default() == on)));
+        }
+        "isdefault" => reply(id, Ok(json!(shell::is_default()))),
+        "newwin" => {
+            // новое окно; side — разложить два окна рядом
+            let side = m["side"].as_bool().unwrap_or(false);
+            let exe = std::env::current_exe().unwrap_or_default();
+            let mut cmd = std::process::Command::new(exe);
+            cmd.arg("--new-window");
+            if side {
+                cmd.arg("--right");
+                let hw = hwnd();
+                let wa = shell::work_area(hw);
+                unsafe {
+                    let _ = ShowWindow(hw, SW_RESTORE);
+                    let _ = SetWindowPos(hw, None, wa.left, wa.top, (wa.right - wa.left) / 2, wa.bottom - wa.top, SWP_NOZORDER);
+                }
+            }
+            if !p.is_empty() {
+                cmd.arg(&p);
+            }
+            let _ = cmd.spawn();
         }
         "menu" => {
             let src = arr_str(&m["src"]);
@@ -296,7 +391,14 @@ fn on_msg(m: Value, files: Vec<String>) {
         "watch" => set_watch(arr_str(&m["dirs"])),
         "save" => {
             if let Some(s) = STATE.get() {
-                s.lock().unwrap()["ui"] = m["state"].clone();
+                let mut st = s.lock().unwrap();
+                let mut ui = m["state"].clone();
+                if secondary() {
+                    // настройки общие, а вкладки остаются у главного окна
+                    ui["tabs"] = st["ui"]["tabs"].clone();
+                    ui["active"] = st["ui"]["active"].clone();
+                }
+                st["ui"] = ui;
             }
             save_state();
         }
@@ -347,23 +449,38 @@ fn on_msg(m: Value, files: Vec<String>) {
     }
 }
 
-fn run_op(id: u64, op: shell::Op) {
-    run_op_then(id, op, Value::Null);
-}
-
-fn run_op_then(id: u64, op: shell::Op, extra: Value) {
+/// Пакет операций в отдельном STA-потоке; id запроса служит и номером операции (для прогресса и отмены).
+fn run_items(id: u64, items: Vec<ops::Item>, extra: Value) {
     let hw = MAIN_HWND.load(Ordering::Relaxed);
     std::thread::spawn(move || {
         unsafe {
             let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         }
-        let r = shell::run(HWND(hw as _), op);
-        reply(id, r.map(|aborted| json!({"aborted": aborted, "x": extra})));
+        let r = ops::run(HWND(hw as _), id, items, Box::new(post));
+        reply(
+            id,
+            r.map(|d| {
+                // восстановление из корзины: убрать осиротевшие $I-файлы
+                for (a, _, k) in &d.pairs {
+                    if *k == "move" && a.to_lowercase().contains("\\$recycle.bin\\") {
+                        ops::drop_recycle_info(a);
+                    }
+                }
+                json!({"aborted": d.aborted, "pairs": d.pairs.iter().map(|(a, b, k)| json!([a, b, k])).collect::<Vec<_>>(), "x": extra})
+            }),
+        );
         unsafe {
             CoUninitialize();
         }
     });
 }
+
+/// Выполнить замыкание в потоке окна.
+fn send_ui(f: impl FnOnce() + Send + 'static) {
+    UI_JOBS.lock().unwrap().push(Box::new(f));
+    wake();
+}
+static UI_JOBS: Mutex<Vec<Box<dyn FnOnce() + Send>>> = Mutex::new(vec![]);
 
 fn set_watch(dirs: Vec<String>) {
     let want: HashSet<String> = dirs.into_iter().filter(|d| d.len() >= 3).collect();
@@ -400,6 +517,10 @@ fn set_watch(dirs: Vec<String>) {
 }
 
 fn on_wake() {
+    let jobs: Vec<Box<dyn FnOnce() + Send>> = std::mem::take(&mut *UI_JOBS.lock().unwrap());
+    for j in jobs {
+        j();
+    }
     let msgs: Vec<Msg> = RX.with(|r| r.borrow().as_ref().map(|r| r.try_iter().collect()).unwrap_or_default());
     for m in msgs {
         match m {
@@ -568,6 +689,7 @@ fn boot_script(open: Option<String>) -> String {
         "known": fsx::known(),
         "open": open,
         "test": test_mode(),
+        "secondary": secondary(),
         "version": env!("CARGO_PKG_VERSION"),
     });
     format!("window.__BOOT={};", boot)
@@ -823,7 +945,7 @@ extern "system" fn wndproc(hw: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESUL
                 LRESULT(1)
             }
             WM_CLOSE => {
-                if !test_mode() {
+                if !test_mode() && !secondary() {
                     let mut wp = WINDOWPLACEMENT { length: std::mem::size_of::<WINDOWPLACEMENT>() as u32, ..Default::default() };
                     if GetWindowPlacement(hw, &mut wp).is_ok() {
                         let r = wp.rcNormalPosition;
@@ -847,7 +969,8 @@ extern "system" fn wndproc(hw: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESUL
 
 fn main() {
     unsafe {
-        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        // OLE (а не просто COM) — нужно для перетаскивания файлов наружу
+        let _ = windows::Win32::System::Ole::OleInitialize(None);
         let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     }
     shell::dark_menus();
@@ -855,9 +978,15 @@ fn main() {
     let arg: Option<String> = std::env::args().skip(1).find(|a| !a.starts_with("--")).map(|a| {
         std::fs::canonicalize(&a).map(|p| p.to_string_lossy().trim_start_matches(r"\\?\").to_string()).unwrap_or(a)
     });
+    if let Some(a) = &arg {
+        if a.starts_with("::") || a.to_lowercase().starts_with("shell:") {
+            shell::explorer(a);
+            return;
+        }
+    }
     let open = arg.or_else(|| std::env::var("FILES_OPEN").ok());
     // один экземпляр: отдаём путь уже открытому окну
-    if !test_mode() {
+    if !test_mode() && !secondary() {
         unsafe {
             if let Ok(other) = FindWindowW(CLASS, PCWSTR::null()) {
                 if !other.is_invalid() {
@@ -907,6 +1036,14 @@ fn main() {
         }
     }
     let test = test_mode();
+    if secondary() {
+        let wa = shell::work_area(HWND::default());
+        if std::env::args().any(|a| a == "--right") {
+            (x, y, wdt, hgt, maxed) = (wa.left + (wa.right - wa.left) / 2, wa.top, (wa.right - wa.left) / 2, wa.bottom - wa.top, false);
+        } else if x != CW_USEDEFAULT {
+            (x, y) = (x + 40, y + 40);
+        }
+    }
     if test {
         let sz = std::env::var("FILES_SIZE").unwrap_or_else(|_| "1180x740".into());
         let (a, b) = sz.split_once('x').unwrap_or(("1180", "740"));

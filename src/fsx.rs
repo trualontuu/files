@@ -306,3 +306,90 @@ pub fn unique(dir: &str, base: &str, ext: &str) -> PathBuf {
     }
     p
 }
+
+// ---------------------------------------------------------------- сеть
+
+/// Общие папки компьютера `\имя` (как подпапки).
+pub fn shares(server: &str) -> Result<Value, String> {
+    use windows::Win32::NetworkManagement::NetManagement::NetApiBufferFree;
+    let mut buf: *mut u8 = std::ptr::null_mut();
+    let (mut read, mut total) = (0u32, 0u32);
+    let r = unsafe { NetShareEnum(&HSTRING::from(server), 1, &mut buf, u32::MAX, &mut read, &mut total, None) };
+    if r != 0 || buf.is_null() {
+        return Err(match r {
+            5 => "Нет доступа к компьютеру".into(),
+            53 | 2250 => "Компьютер не найден в сети".into(),
+            _ => format!("Не удалось получить список папок (код {r})"),
+        });
+    }
+    let mut out = vec![];
+    unsafe {
+        let list = std::slice::from_raw_parts(buf as *const SHARE_INFO_1, read as usize);
+        for s in list {
+            let t = s.shi1_type.0;
+            if t & 0xFF != 0 || t & 0x8000_0000 != 0 {
+                continue; // принтеры, IPC$, C$ и прочие служебные
+            }
+            let name = s.shi1_netname.to_string().unwrap_or_default();
+            out.push(json!([name, F_DIR, 0, 0]));
+        }
+        let _ = NetApiBufferFree(Some(buf as _));
+    }
+    Ok(Value::Array(out))
+}
+
+// ---------------------------------------------------------------- недавние
+
+/// Недавние файлы: свой журнал Files (`own`: путь, время открытия) + системный список Recent\*.lnk.
+pub fn recent(own: &[(String, i64)]) -> Value {
+    use windows::core::Interface;
+    use windows::Win32::System::Com::*;
+    let mut cand: Vec<(i64, String)> = own.iter().map(|(p, t)| (*t, p.clone())).collect();
+    let dir = std::env::var("APPDATA").map(|a| PathBuf::from(a).join(r"Microsoft\Windows\Recent")).unwrap_or_default();
+    let mut lnks: Vec<(PathBuf, i64)> = std::fs::read_dir(&dir)
+        .map(|rd| {
+            rd.flatten()
+                .filter(|e| e.path().extension().map(|x| x.eq_ignore_ascii_case("lnk")).unwrap_or(false))
+                .map(|e| (e.path(), ms(e.metadata().and_then(|m| m.modified()))))
+                .collect()
+        })
+        .unwrap_or_default();
+    lnks.sort_by(|a, b| b.1.cmp(&a.1));
+    unsafe {
+        if let Ok(link) = CoCreateInstance::<_, IShellLinkW>(&ShellLink, None, CLSCTX_INPROC_SERVER) {
+            if let Ok(pf) = link.cast::<IPersistFile>() {
+                for (p, opened) in lnks.into_iter().take(300) {
+                    if pf.Load(&HSTRING::from(p.as_os_str()), STGM_READ).is_err() {
+                        continue;
+                    }
+                    let mut buf = [0u16; 1024];
+                    if link.GetPath(&mut buf, std::ptr::null_mut(), 0).is_err() {
+                        continue;
+                    }
+                    let n = buf.iter().position(|&c| c == 0).unwrap_or(0);
+                    if n > 0 {
+                        cand.push((opened, String::from_utf16_lossy(&buf[..n])));
+                    }
+                }
+            }
+        }
+    }
+    cand.sort_by(|a, b| b.0.cmp(&a.0));
+    let mut out = vec![];
+    let mut seen = std::collections::HashSet::new();
+    for (opened, target) in cand {
+        if target.is_empty() || !seen.insert(target.to_lowercase()) {
+            continue;
+        }
+        let Ok(md) = std::fs::metadata(&target) else { continue };
+        let f = flags(md.file_attributes());
+        if f & F_DIR != 0 {
+            continue;
+        }
+        out.push(json!([target, f, md.file_size(), ms(md.modified()), opened]));
+        if out.len() >= 150 {
+            break;
+        }
+    }
+    Value::Array(out)
+}
