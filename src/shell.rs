@@ -44,10 +44,12 @@ pub fn properties(hwnd: HWND, p: &str) {
 
 pub fn reveal(p: &str) {
     use std::os::windows::process::CommandExt;
+    crate::agent::allow_explorer();
     let _ = std::process::Command::new("explorer.exe").raw_arg(format!("/select,\"{p}\"")).spawn();
 }
 
 pub fn explorer(p: &str) {
+    crate::agent::allow_explorer();
     let _ = std::process::Command::new("explorer.exe").arg(p).spawn();
 }
 
@@ -378,6 +380,8 @@ fn reg_get(key: &str) -> Option<String> {
 }
 
 /// Открывать папки и Win+E в Files (только для текущего пользователя, обратимо).
+const RUN: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
+
 pub fn set_default(on: bool) -> bool {
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
     if on {
@@ -388,8 +392,10 @@ pub fn set_default(on: bool) -> bool {
             ok &= reg_set(&format!(r"Software\Classes\{cls}\shell\openinfiles"), None, "Открыть в Files");
             ok &= reg_set(&format!(r"Software\Classes\{cls}\shell\openinfiles\command"), None, &cmd);
         }
-        ok &= reg_set(&format!(r"{WIN_E}\shell\opennewwindow\command"), None, &format!("\"{exe}\""));
-        ok &= reg_set(&format!(r"{WIN_E}\shell\opennewwindow\command"), Some("DelegateExecute"), "");
+        // Win+E и окна Проводника из других программ ловит фоновый помощник; он же стартует при входе
+        reg_del_tree(WIN_E);
+        ok &= reg_set(RUN, Some("Files"), &format!("\"{exe}\" --agent"));
+        crate::agent::spawn();
         ok
     } else {
         use windows::Win32::System::Registry::*;
@@ -400,6 +406,10 @@ pub fn set_default(on: bool) -> bool {
             }
         }
         reg_del_tree(WIN_E);
+        unsafe {
+            let _ = RegDeleteKeyValueW(HKEY_CURRENT_USER, &HSTRING::from(RUN), w!("Files"));
+        }
+        crate::agent::stop();
         true
     }
 }

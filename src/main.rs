@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 //! Files — ч/б файловый менеджер на Rust поверх WebView2.
 
+mod agent;
 mod fsx;
 mod ops;
 mod shell;
@@ -940,7 +941,7 @@ extern "system" fn wndproc(hw: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESUL
                     if IsIconic(hw).as_bool() {
                         let _ = ShowWindow(hw, SW_RESTORE);
                     }
-                    let _ = SetForegroundWindow(hw);
+                    bring_to_front(hw);
                 }
                 LRESULT(1)
             }
@@ -967,7 +968,27 @@ extern "system" fn wndproc(hw: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESUL
     }
 }
 
+/// Вывести окно наверх, даже если нас позвал фоновый процесс (система иначе только мигнёт кнопкой).
+fn bring_to_front(hw: HWND) {
+    unsafe {
+        if SetForegroundWindow(hw).as_bool() && GetForegroundWindow() == hw {
+            return;
+        }
+        // нажатие Alt снимает блокировку смены активного окна
+        let alt = [
+            INPUT { r#type: INPUT_KEYBOARD, Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: VK_MENU, ..Default::default() } } },
+            INPUT { r#type: INPUT_KEYBOARD, Anonymous: INPUT_0 { ki: KEYBDINPUT { wVk: VK_MENU, dwFlags: KEYEVENTF_KEYUP, ..Default::default() } } },
+        ];
+        SendInput(&alt, std::mem::size_of::<INPUT>() as i32);
+        let _ = SetForegroundWindow(hw);
+    }
+}
+
 fn main() {
+    if std::env::args().any(|a| a == "--agent") {
+        agent::run();
+        return;
+    }
     unsafe {
         // OLE (а не просто COM) — нужно для перетаскивания файлов наружу
         let _ = windows::Win32::System::Ole::OleInitialize(None);
@@ -1066,6 +1087,9 @@ fn main() {
             let _ = SetWindowPos(hw, Some(HWND_BOTTOM), -4000, 0, wdt, hgt, SWP_NOACTIVATE);
         }
         let _ = ShowWindow(hw, if test { SW_SHOWNOACTIVATE } else if maxed { SW_SHOWMAXIMIZED } else { SW_SHOW });
+        if !test {
+            bring_to_front(hw);
+        }
         let _ = UpdateWindow(hw);
     }
 
