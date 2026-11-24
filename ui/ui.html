@@ -1,0 +1,1678 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Files</title>
+<style>
+:root{--bg:#0a0a0a;--bar:#171717;--side:#0e0e0e;--hover:#151515;--sel:#262626;--sel2:#303030;--fg:#ededed;--dim:#8a8a8a;--mut:#5c5c5c;--line:#222;--field:#0d0d0d;--sw:224px;--pw:320px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:12.5px "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;user-select:none;-webkit-user-select:none;cursor:default}
+body{display:flex;flex-direction:column}
+svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
+input{font:inherit;color:inherit}
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-thumb{background:#262626;border:4px solid transparent;background-clip:padding-box;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:#3a3a3a;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+
+/* вкладки */
+#top{height:36px;display:flex;align-items:flex-end;flex:none}
+#tabs{display:flex;align-items:flex-end;height:36px;padding-left:8px;min-width:0;flex:0 1 auto;overflow:hidden}
+.tab{position:relative;flex:0 1 200px;min-width:36px;height:30px;display:flex;align-items:center;gap:8px;padding:0 6px 0 11px;border-radius:9px 9px 0 0;color:var(--dim);transition:background .12s,color .12s}
+.tab:hover{background:#121212;color:#c4c4c4}
+.tab.on{background:var(--bar);color:var(--fg);z-index:1}
+.tab:not(.on):not(:hover)+.tab:not(.on):not(:hover)::before{content:"";position:absolute;left:0;top:9px;height:12px;border-left:1px solid #262626}
+.tab.drop{background:#1d1d1d}
+.tab .fo{width:16px;height:13px}
+.ttl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent)}
+.x{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;color:var(--dim);opacity:0;flex:none}
+.tab:hover .x,.tab.on .x{opacity:1}
+.x:hover{background:#2b2b2b;color:var(--fg)}
+.x svg{width:12px;height:12px;stroke-width:1.7}
+#plus{width:28px;height:28px;margin:0 0 2px 4px;border-radius:8px;display:grid;place-items:center;color:var(--dim);flex:none}
+#plus:hover{background:#1a1a1a;color:var(--fg)}
+#drag{flex:1;height:100%;min-width:40px}
+.win{width:46px;height:36px;display:grid;place-items:center;color:#c8c8c8;flex:none}
+.win:hover{background:#1c1c1c;color:#fff}
+#wclose:hover{background:#e8e8e8;color:#000}
+.win svg{width:14px;height:14px;stroke-width:1.2}
+
+/* панель инструментов */
+#tool{height:44px;background:var(--bar);display:flex;align-items:center;gap:2px;padding:0 8px;position:relative;flex:none}
+#tool::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--line)}
+#prog{position:absolute;left:0;bottom:0;height:1px;width:0;background:#f2f2f2;z-index:1;opacity:0;transition:opacity .3s}
+#prog.on{opacity:1;animation:p 2.4s cubic-bezier(.1,.6,.3,1) forwards}
+@keyframes p{from{width:0}to{width:85%}}
+.btn{width:32px;height:30px;border-radius:8px;display:grid;place-items:center;color:#d2d2d2;flex:none;position:relative}
+.btn:hover{background:#242424;color:#fff}
+.btn.off{color:#444;pointer-events:none}
+.btn.on{color:#fff;background:#242424}
+.sep{width:1px;height:18px;background:#2a2a2a;margin:0 6px;flex:none}
+#path{flex:1;min-width:0;height:30px;margin:0 4px 0 6px;background:var(--field);border:1px solid #1d1d1d;border-radius:9px;display:flex;align-items:center;padding:0 4px;position:relative}
+#path:hover{border-color:#2a2a2a}
+#path.edit{border-color:#4a4a4a;background:#090909}
+#crumbs{flex:1;min-width:0;display:flex;align-items:center;overflow:hidden;white-space:nowrap;height:100%}
+.cr{height:24px;display:flex;align-items:center;gap:6px;padding:0 7px;border-radius:6px;color:#bdbdbd;flex:none;max-width:260px}
+.cr span{overflow:hidden;text-overflow:ellipsis}
+.cr:hover{background:#1e1e1e;color:#fff}
+.cr:last-child{color:var(--fg)}
+.cr.drop{background:#2a2a2a;color:#fff}
+.cr svg{width:15px;height:15px}
+.chev{color:#4a4a4a;flex:none}
+.chev svg{width:12px;height:12px}
+.cr.more{color:var(--mut)}
+#pathin{display:none;flex:1;min-width:0;background:none;border:0;outline:0;padding:0 7px;font-size:13px;caret-color:#fff}
+#pathin::selection,#find::selection,.ren::selection,#palin::selection{background:#ededed;color:#000}
+#path.edit #crumbs{display:none}
+#path.edit #pathin{display:block}
+#sugg{position:absolute;left:-1px;right:-1px;top:32px;background:#151515;border:1px solid #2c2c2c;border-radius:10px;padding:4px;display:none;z-index:30;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+#sugg.on{display:block}
+.sg{height:28px;display:flex;align-items:center;gap:8px;padding:0 8px;border-radius:6px;color:#cfcfcf;white-space:nowrap;overflow:hidden}
+.sg.on,.sg:hover{background:#262626;color:#fff}
+.sg .fo{width:16px;height:13px}
+#findw{width:230px;height:30px;background:var(--field);border:1px solid #1d1d1d;border-radius:9px;display:flex;align-items:center;gap:7px;padding:0 9px;color:var(--mut);flex:none;transition:width .18s}
+#findw:hover{border-color:#2a2a2a}
+#findw.focus{border-color:#4a4a4a;background:#090909;width:300px;color:var(--dim)}
+#findw svg{width:14px;height:14px}
+#find{flex:1;min-width:0;background:none;border:0;outline:0;font-size:12.5px;caret-color:#fff;color:var(--fg)}
+#find::placeholder{color:var(--mut)}
+#findx{display:none;color:var(--dim);border-radius:5px}
+#findx:hover{color:#fff;background:#262626}
+#findw.has #findx{display:block}
+#findx svg{width:13px;height:13px}
+
+/* основная часть */
+#main{flex:1;min-height:0;display:flex}
+#side{width:var(--sw);flex:none;background:var(--side);overflow-y:auto;overflow-x:hidden;padding:8px 8px 16px;border-right:1px solid #191919}
+#side::-webkit-scrollbar{width:8px}
+#side::-webkit-scrollbar-thumb{border-width:2px}
+.sec{font-size:11px;color:var(--mut);padding:14px 10px 6px;letter-spacing:.02em;display:flex;align-items:center;justify-content:space-between}
+.sec:first-child{padding-top:6px}
+.sec.drop{color:#fff}
+.si{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:8px;color:#c6c6c6;white-space:nowrap;position:relative}
+.si span{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.si:hover{background:#171717;color:#fff}
+.si.on{background:#1f1f1f;color:#fff}
+.si.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:2px;background:#ededed}
+.si.drop{background:#2a2a2a;color:#fff}
+.si svg{color:#9a9a9a}
+.si .fo{width:16px;height:13px}
+.si.drv{height:44px;align-items:flex-start;padding-top:7px}
+.dn{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.dn span{overflow:hidden;text-overflow:ellipsis}
+.dn i{display:block;height:3px;border-radius:2px;background:#232323;overflow:hidden}
+.dn i u{display:block;height:100%;background:#9a9a9a;border-radius:2px}
+.dn i u.full{background:#ededed}
+.si small{font-size:10.5px;color:var(--mut);margin-left:auto;flex:none}
+.split{width:5px;margin:0 -2px;cursor:col-resize;flex:none;z-index:5;position:relative}
+.split:hover::after,.split.on::after{content:"";position:absolute;left:2px;top:0;bottom:0;width:1px;background:#3a3a3a}
+
+#pane{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+#head{height:30px;flex:none;display:grid;grid-template-columns:var(--cols);align-items:center;padding:0 var(--hr,10px) 0 8px;color:var(--mut);font-size:11.5px;border-bottom:1px solid #161616}
+#head div{display:flex;align-items:center;gap:4px;height:100%;padding:0 8px;white-space:nowrap;overflow:hidden}
+#head div:hover{color:#bdbdbd}
+#head div.on{color:#cfcfcf}
+#head div svg{width:10px;height:10px;stroke-width:1.8}
+#head .r{justify-content:flex-end}
+#head div:first-child{padding-left:30px}
+#pane.grid #head{display:none}
+#scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative;outline:0}
+#sizer{width:1px}
+#items{position:absolute;left:0;right:0;top:0}
+#band{position:absolute;display:none;border:1px solid #8a8a8a;background:rgba(237,237,237,.07);border-radius:3px;pointer-events:none;z-index:4}
+.row{position:absolute;left:8px;right:8px;top:0;height:30px;display:grid;grid-template-columns:var(--cols);align-items:center;border-radius:7px;color:#d6d6d6;padding-right:2px}
+.row>span{padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .ic{position:absolute;left:8px;top:7px;width:16px;height:16px;padding:0;display:grid;place-items:center;color:#a8a8a8}
+.row .nm{padding-left:30px;color:var(--fg)}
+.row .dt,.row .ty,.row .lc{color:var(--dim)}
+.row .sz{color:var(--dim);text-align:right;font-variant-numeric:tabular-nums}
+.row:hover,.tile:hover{background:var(--hover)}
+.row.sel,.tile.sel{background:var(--sel)}
+body.act .row.sel,body.act .tile.sel{background:var(--sel2)}
+.row.cur,.tile.cur{box-shadow:inset 0 0 0 1px #474747}
+.row.hid,.tile.hid{opacity:.5}
+.row.cut,.tile.cut{opacity:.4}
+.row.drop,.tile.drop{background:#3a3a3a;box-shadow:inset 0 0 0 1px #8a8a8a}
+.ic .fo{width:16px;height:13px}
+.ic img{position:absolute;inset:0;width:16px;height:16px;opacity:0;filter:grayscale(1) contrast(1.05)}
+.ic.ok img{opacity:1}
+.ic.ok svg{visibility:hidden}
+.fo .b{fill:#4d4d4d;stroke:none}
+.fo .f{fill:#9c9c9c;stroke:none}
+.tile{position:absolute;left:8px;top:0;height:120px;border-radius:10px;display:flex;flex-direction:column;align-items:center;padding:8px 6px 0;gap:6px}
+.th{width:100%;height:72px;display:grid;place-items:center;position:relative;flex:none}
+.th>.fo{width:64px;height:52px}
+.th img.tn{position:absolute;max-width:100%;max-height:72px;border-radius:4px;opacity:0;transition:opacity .15s;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 1px 0 rgba(255,255,255,.04),0 4px 14px rgba(0,0,0,.45)}
+.th img.ti{position:absolute;width:48px;height:48px;opacity:0;left:50%;top:50%;transform:translate(-50%,-50%);filter:grayscale(1) contrast(1.05)}
+.th.ok img{opacity:1}
+.th.ok>.bf{visibility:hidden}
+.tile .nm{font-size:12px;line-height:15px;text-align:center;color:var(--fg);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;max-width:100%;padding:0 2px}
+.bf{position:relative;width:46px;height:58px;display:block}
+.bf .page{width:46px;height:58px;stroke:#4e4e4e;stroke-width:1.2;fill:#131313}
+.bf .gl{position:absolute;left:14px;top:22px;width:18px;height:18px;color:#b5b5b5;stroke-width:1.4}
+.bf .ext{position:absolute;left:4px;bottom:7px;font:700 8.5px/13px "Segoe UI",sans-serif;padding:0 4px;border-radius:3px;background:#d9d9d9;color:#000;letter-spacing:.03em}
+.ren{width:100%;height:24px;background:#0a0a0a;border:1px solid #6a6a6a;border-radius:5px;outline:0;padding:0 6px;color:#fff;caret-color:#fff;font-size:12.5px}
+.row .nm:has(.ren){overflow:visible;padding-left:24px}
+.tile .nm:has(.ren){overflow:visible;display:block;width:100%}
+.tile .ren{text-align:center;height:22px}
+#empty{position:absolute;left:0;right:0;top:30px;bottom:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--mut);pointer-events:none}
+#empty.on{display:flex}
+#empty svg{width:28px;height:28px;stroke-width:1.2;color:#3a3a3a}
+#pane.grid #empty{top:0}
+.spin{width:14px;height:14px;border:1.6px solid #3a3a3a;border-top-color:#f0f0f0;border-radius:50%;animation:r .75s linear infinite;flex:none}
+@keyframes r{to{transform:rotate(360deg)}}
+
+/* этот компьютер */
+#pcview{position:absolute;inset:0;overflow-y:auto;padding:22px 26px 40px;display:none}
+#pane.pc #pcview{display:block}
+#pane.pc #head,#pane.pc #scroll{visibility:hidden}
+.pch{font-size:11px;color:var(--mut);margin:6px 2px 12px;letter-spacing:.02em}
+.pcg{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:6px;margin-bottom:26px}
+.pck{height:112px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#d6d6d6}
+.pck:hover{background:#141414}
+.pck .fo{width:56px;height:46px}
+.pcd{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.pcdrive{display:flex;gap:14px;align-items:center;padding:16px;border-radius:12px;background:#101010;border:1px solid #1a1a1a}
+.pcdrive:hover{background:#151515;border-color:#262626}
+.pcdrive>svg{width:30px;height:30px;stroke-width:1.1;color:#9a9a9a}
+.pcdrive div{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.pcdrive b{font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcdrive i{height:4px;border-radius:2px;background:#232323;overflow:hidden;display:block}
+.pcdrive i u{display:block;height:100%;background:#a0a0a0}
+.pcdrive i u.full{background:#ededed}
+.pcdrive small{color:var(--mut);font-size:11px}
+
+/* предпросмотр */
+#prev{width:var(--pw);flex:none;background:var(--side);border-left:1px solid #191919;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+body.nopv #prev,body.nopv #sp2{display:none}
+#pv{padding:18px 18px 24px;display:flex;flex-direction:column;gap:4px;min-height:100%}
+.pvmedia{min-height:120px;max-height:52vh;display:grid;place-items:center;margin-bottom:14px;position:relative;border-radius:10px;overflow:hidden}
+.pvmedia.box{background:#0a0a0a;border:1px solid #1a1a1a}
+.pvmedia img.pvimg{max-width:100%;max-height:52vh;display:block;border-radius:8px}
+.pvmedia video{width:100%;max-height:52vh;border-radius:8px;background:#000}
+.pvmedia iframe{width:100%;height:52vh;border:0;border-radius:8px;background:#1a1a1a}
+.pvmedia audio{width:100%;margin-top:12px;height:36px}
+.pvbig{display:flex;flex-direction:column;align-items:center;padding:18px 0 6px;position:relative}
+.pvbig .fo{width:96px;height:78px}
+.pvbig .bf{transform:scale(1.5);margin:14px 0}
+.pvbig .th{height:120px}
+.pvbig .th img.tn{max-height:120px}
+.pvbig .th img.ti{width:64px;height:64px}
+.pvn{font-size:14px;color:var(--fg);word-break:break-word;line-height:19px;user-select:text;-webkit-user-select:text}
+.pvm{color:var(--dim);margin-bottom:14px}
+.pvi{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:12px;padding-top:14px;border-top:1px solid #1c1c1c}
+.pvi dt{color:var(--mut)}
+.pvi dd{color:#cfcfcf;word-break:break-all;user-select:text;-webkit-user-select:text}
+.pvtxt{font:11.5px/1.55 "Cascadia Mono",Consolas,monospace;color:#bdbdbd;white-space:pre-wrap;word-break:break-all;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;padding:12px 14px;max-height:52vh;overflow:auto;margin-bottom:14px;user-select:text;-webkit-user-select:text;tab-size:4}
+.pvstack{position:relative;width:96px;height:96px;margin:18px auto 10px}
+.pvstack span{position:absolute;inset:0;border-radius:12px;border:1px solid #3a3a3a;background:#141414}
+.pvstack span:nth-child(1){transform:rotate(-8deg) translate(-6px,2px)}
+.pvstack span:nth-child(2){transform:rotate(5deg) translate(5px,0)}
+.pvstack span:nth-child(3){display:grid;place-items:center;font-size:26px;font-weight:300;color:#ededed;background:#1a1a1a}
+.pvhint{margin-top:auto;padding-top:24px;color:#3e3e3e;font-size:11px;text-align:center}
+
+/* строка состояния */
+#status{height:26px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--side);border-top:1px solid #191919;color:var(--mut);font-size:11.5px;white-space:nowrap}
+#status .spin{width:11px;height:11px}
+#st1{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:8px}
+#st1 b{font-weight:400;color:#a8a8a8}
+
+/* меню, палитра, уведомления */
+#ctx{position:fixed;z-index:50;min-width:230px;background:#171717;border:1px solid #2c2c2c;border-radius:11px;padding:5px;display:none;box-shadow:0 16px 40px rgba(0,0,0,.6);animation:in .12s}
+#ctx.on{display:block}
+@keyframes in{from{opacity:0;transform:translateY(-3px)}}
+.mi{height:30px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:7px;color:#dcdcdc;white-space:nowrap}
+.mi.on{background:#2a2a2a;color:#fff}
+.mi.dis{color:#4a4a4a;pointer-events:none}
+.mi kbd{margin-left:auto;padding-left:26px;font:11px "Segoe UI",sans-serif;color:var(--mut)}
+.mi .ck{width:14px;display:grid;place-items:center}
+.mi .ck svg{width:13px;height:13px;stroke-width:1.8}
+.mi.b{font-weight:600}
+.ms{height:1px;background:#262626;margin:5px 6px}
+.mr{display:flex;align-items:center;gap:4px;padding:3px 6px 3px 10px;color:var(--mut);font-size:11.5px;height:32px}
+.mr span{flex:1}
+.mr i{font-style:normal;height:24px;display:grid;place-items:center;padding:0 9px;border-radius:6px;color:#bdbdbd;background:#1f1f1f;font-size:11.5px}
+.mr i:hover{background:#2a2a2a;color:#fff}
+.mr i.on{background:#ededed;color:#000}
+#veil{position:fixed;inset:0;z-index:40;display:none;background:rgba(0,0,0,.35)}
+#veil.on{display:block}
+#pal{position:fixed;z-index:45;left:50%;top:76px;transform:translateX(-50%);width:min(600px,calc(100% - 40px));background:#151515;border:1px solid #2c2c2c;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.7);display:none;overflow:hidden;animation:in .14s}
+#pal.on{display:block}
+#palw{height:50px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #232323;color:var(--dim)}
+#palin{flex:1;background:none;border:0;outline:0;font-size:15px;caret-color:#fff;color:var(--fg)}
+#palin::placeholder{color:var(--mut)}
+#pall{max-height:420px;overflow-y:auto;padding:6px}
+.pi{height:38px;display:flex;align-items:center;gap:12px;padding:0 10px;border-radius:8px;color:#d6d6d6}
+.pi.on{background:#262626;color:#fff}
+.pi .fo{width:16px;height:13px}
+.pi>svg{color:#9a9a9a}
+.pi .pt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;max-width:60%}
+.pi .ps{flex:1;min-width:0;color:var(--mut);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left}
+.pi kbd{font:11px "Segoe UI",sans-serif;color:var(--mut);flex:none}
+.pi mark{background:none;color:#fff;font-weight:600}
+.pg{font-size:11px;color:var(--mut);padding:10px 10px 4px}
+#toast{position:fixed;left:50%;bottom:44px;transform:translate(-50%,10px);background:#ededed;color:#000;padding:8px 16px;border-radius:18px;font-size:12.5px;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast.err{background:#2a2a2a;color:#fff;border:1px solid #444}
+#modal{position:fixed;z-index:55;left:50%;top:30%;transform:translateX(-50%);width:380px;background:#171717;border:1px solid #2c2c2c;border-radius:14px;padding:20px 20px 16px;display:none;box-shadow:0 24px 60px rgba(0,0,0,.7)}
+#modal.on{display:block;animation:in .14s}
+#modal h3{font-size:14px;font-weight:500;margin-bottom:6px}
+#modal p{color:var(--dim);margin-bottom:18px}
+#modal .bt{display:flex;justify-content:flex-end;gap:8px}
+#modal button{border:0;font:inherit;height:30px;padding:0 16px;border-radius:8px;background:#262626;color:#fff;cursor:default}
+#modal button:hover{background:#303030}
+#modal button.ok{background:#ededed;color:#000}
+#modal button.ok:hover{background:#fff}
+#ghost{position:fixed;top:-100px;left:0;background:#ededed;color:#000;padding:4px 10px;border-radius:12px;font-size:12px;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body class="act">
+<div id="top">
+  <div id="tabs"></div>
+  <div id="plus" title="Новая вкладка (Ctrl+T)"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></div>
+  <div id="drag"></div>
+  <div class="win" id="wmin"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></div>
+  <div class="win" id="wmax"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg></div>
+  <div class="win" id="wclose"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></div>
+</div>
+<div id="tool">
+  <div class="btn off" id="back" title="Назад (Alt+←)"><svg viewBox="0 0 16 16"><path d="M13 8H3M7 4L3 8l4 4"/></svg></div>
+  <div class="btn off" id="fwd" title="Вперёд (Alt+→)"><svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></div>
+  <div class="btn" id="up" title="Вверх (Alt+↑)"><svg viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></svg></div>
+  <div id="path"><div id="crumbs"></div><input id="pathin" spellcheck="false" autocomplete="off"><div id="sugg"></div></div>
+  <div id="findw"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2L13.5 13.5"/></svg><input id="find" spellcheck="false" autocomplete="off" placeholder="Фильтр · Enter — поиск во вложенных"><div id="findx"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></div></div>
+  <div class="sep"></div>
+  <div class="btn" id="vlist" title="Список"><svg viewBox="0 0 16 16"><path d="M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.01M2.5 8h.01M2.5 12h.01"/></svg></div>
+  <div class="btn" id="vgrid" title="Плитка"><svg viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="2.5" width="4.5" height="4.5" rx="1.2"/><rect x="2.5" y="9" width="4.5" height="4.5" rx="1.2"/><rect x="9" y="9" width="4.5" height="4.5" rx="1.2"/></svg></div>
+  <div class="btn" id="vprev" title="Панель просмотра (Пробел)"><svg viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="1.8"/><path d="M9.8 2.5v11"/></svg></div>
+  <div class="btn" id="menu" title="Команды (Ctrl+K)"><svg viewBox="0 0 16 16"><circle cx="3.5" cy="8" r=".6" fill="currentColor"/><circle cx="8" cy="8" r=".6" fill="currentColor"/><circle cx="12.5" cy="8" r=".6" fill="currentColor"/></svg></div>
+  <div id="prog"></div>
+</div>
+<div id="main">
+  <aside id="side"></aside>
+  <div class="split" id="sp1"></div>
+  <section id="pane">
+    <div id="head"></div>
+    <div id="scroll" tabindex="0"><div id="sizer"></div><div id="items"></div><div id="band"></div></div>
+    <div id="empty"></div>
+    <div id="pcview"></div>
+  </section>
+  <div class="split" id="sp2"></div>
+  <aside id="prev"><div id="pv"></div></aside>
+</div>
+<div id="status"><div id="st1"></div><div id="st2"></div></div>
+<div id="veil"></div>
+<div id="ctx"></div>
+<div id="pal"><div id="palw"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2L13.5 13.5"/></svg><input id="palin" spellcheck="false" autocomplete="off" placeholder="Папка, файл или команда"></div><div id="pall"></div></div>
+<div id="modal"><h3></h3><p></p><div class="bt"><button class="no">Отмена</button><button class="ok"></button></div></div>
+<div id="toast"></div>
+<div id="ghost"></div>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const B = window.__BOOT || {known: [], state: null};
+const wv = window.chrome.webview;
+const HOST = 'https://files.local/';
+const enc = encodeURIComponent;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+let rid = 0;
+const waits = new Map();
+const call = (c, a = {}) => new Promise((res, rej) => { const id = ++rid; waits.set(id, {res, rej}); wv.postMessage({...a, c, id}); });
+const send = (c, a = {}) => wv.postMessage({...a, c});
+const log = v => B.test && send('log', {v});
+window.onerror = (m, s, l, c) => log('ERR ' + m + ' @' + l + ':' + c);
+window.onunhandledrejection = e => log('REJ ' + (e.reason && e.reason.stack || e.reason));
+
+// ---------------------------------------------------------------- состояние
+const S = Object.assign({view: 'list', sort: {k: 'name', d: 1}, hidden: false, preview: true, pins: [], recent: [], sideW: 224, prevW: 320, tabs: null, active: 0}, B.state || {});
+let tabs = [], act = 0, tabSeq = 0, drives = [], cutSet = new Set(), dropEl = null, dragSrc = null;
+const collator = new Intl.Collator('ru', {numeric: true, sensitivity: 'base'});
+const scroller = $('#scroll'), items = $('#items'), sizer = $('#sizer'), band = $('#band');
+const DPR = () => window.devicePixelRatio || 1;
+
+// ---------------------------------------------------------------- значки
+const FOLDER = '<svg class="fo" viewBox="0 0 64 52"><path class="b" d="M2 6a5 5 0 0 1 5-5h14.5a4 4 0 0 1 2.9 1.2L28 6h29a5 5 0 0 1 5 5v35a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5z"/><path class="f" d="M2 17a4 4 0 0 1 4-4h52a4 4 0 0 1 4 4v30a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/></svg>';
+const PAGE = '<path d="M4.2 1.8h4.7l3.4 3.4v8.4c0 .4-.3.7-.7.7H4.2c-.4 0-.7-.3-.7-.7V2.5c0-.4.3-.7.7-.7z"/><path d="M8.7 1.8v3.6h3.6"/>';
+const LINES = '<path d="M5.7 8.2h4.6M5.7 10.4h4.6M5.7 12.4h2.6"/>';
+const G = {
+  file: PAGE,
+  image: '<rect x="2" y="2.8" width="12" height="10.4" rx="1.8"/><circle cx="5.7" cy="6.3" r="1.1"/><path d="M2.4 11.6l3.4-3.2 2.5 2.3 2-1.8 3.3 3"/>',
+  video: '<rect x="2" y="3.3" width="12" height="9.4" rx="1.8"/><path d="M6.8 6v4l3.3-2z"/>',
+  audio: '<path d="M6 11.8V4l7-1.4v7.8"/><circle cx="4.3" cy="11.8" r="1.7"/><circle cx="11.3" cy="10.4" r="1.7"/>',
+  archive: '<rect x="2.5" y="2.5" width="11" height="11" rx="1.8"/><path d="M8 2.5v1.3M8 5.2v1.3M8 7.9v1.3"/><rect x="7" y="9.8" width="2" height="2" rx=".4"/>',
+  code: '<path d="M5.4 4.6L2 8l3.4 3.4M10.6 4.6L14 8l-3.4 3.4M9.1 3L6.9 13"/>',
+  text: PAGE + LINES,
+  doc: PAGE + LINES,
+  pdf: PAGE + '<path d="M5.7 9.2h4.6M5.7 11.4h3"/>',
+  sheet: '<rect x="2.5" y="2.5" width="11" height="11" rx="1.8"/><path d="M2.5 6.2h11M2.5 9.8h11M6.5 2.5v11"/>',
+  slide: '<rect x="2" y="3" width="12" height="8.5" rx="1.6"/><path d="M8 11.5V14M5.5 14h5"/>',
+  app: '<rect x="2.3" y="2.8" width="11.4" height="10.4" rx="1.8"/><path d="M2.3 5.8h11.4M4.4 4.3h.01M6 4.3h.01"/>',
+  link: '<rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M6.3 9.7L10 6M7 6h3v3"/>',
+  font: '<path d="M3.5 13L7.5 3l4 10M5 9.6h5"/>',
+  disk: '<circle cx="8" cy="8" r="5.8"/><circle cx="8" cy="8" r="1.5"/>',
+  sys: '<circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6L5 5M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/>',
+};
+const UI = {
+  pc: '<rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.4"/><path d="M5.5 13.5h5M8 11v2.5"/>',
+  home: '<path d="M2.5 7.2L8 2.8l5.5 4.4V13c0 .3-.2.5-.5.5H9.6v-3.6H6.4v3.6H3c-.3 0-.5-.2-.5-.5z"/>',
+  desktop: '<rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.4"/><path d="M5.5 13.5h5M8 11v2.5"/>',
+  downloads: '<path d="M8 2.5v8M4.8 7.4L8 10.6l3.2-3.2M3 13.5h10"/>',
+  documents: PAGE + LINES,
+  pictures: G.image, music: G.audio, videos: G.video,
+  disk: '<rect x="1.8" y="4" width="12.4" height="8" rx="1.8"/><path d="M4.6 8h.01M8.5 8h3"/>',
+  usb: '<rect x="4.5" y="6" width="7" height="8" rx="1.4"/><path d="M6 6V2.5h4V6M7 4h.01M9 4h.01"/>',
+  net: '<rect x="2" y="2.5" width="12" height="6" rx="1.4"/><path d="M8 8.5v3M3 13.5h10M8 11.5v2"/>',
+  cd: G.disk,
+  trash: '<path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.3 4.5l.6 8.5c0 .5.4.9.9.9h4.4c.5 0 .9-.4.9-.9l.6-8.5"/>',
+  search: '<circle cx="7" cy="7" r="4.2"/><path d="M10.2 10.2L13.5 13.5"/>',
+  chev: '<path d="M6 3.5L10.5 8 6 12.5"/>',
+  check: '<path d="M3.5 8.5l3 3 6-7"/>',
+  up: '<path d="M8 12V4M4.5 7.5L8 4l3.5 3.5"/>', down: '<path d="M8 4v8M4.5 8.5L8 12l3.5-3.5"/>',
+  cmd: '<path d="M6 5.5h4M6 8h4M6 10.5h2.5"/><rect x="2.5" y="2.5" width="11" height="11" rx="2"/>',
+  empty: '<rect x="2.5" y="3.5" width="11" height="9" rx="1.8"/><path d="M2.5 9h3l1 1.5h3l1-1.5h3"/>',
+  lock: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.4"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"/>',
+  pin: '<path d="M9.8 2.5l3.7 3.7-2.6 1.1-2.4 2.4.3 2.5-1 1-5-5 1-1 2.5.3 2.4-2.4z M5 11l-2.5 2.5"/>',
+  max: '<rect x="3.5" y="3.5" width="9" height="9" rx="1"/>',
+  restore: '<rect x="3.5" y="5.5" width="7" height="7" rx="1"/><path d="M5.5 5.5V4.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-1"/>',
+};
+const svg = (d, cls = '') => `<svg viewBox="0 0 16 16"${cls ? ` class="${cls}"` : ''}>${d}</svg>`;
+
+const KINDS = {
+  image: 'png jpg jpeg jfif gif webp bmp ico svg avif heic heif tif tiff psd raw cr2 nef arw dng',
+  video: 'mp4 m4v mkv webm mov avi wmv flv 3gp ts mts',
+  audio: 'mp3 m4a wav ogg opus flac aac wma mid',
+  archive: 'zip rar 7z tar gz tgz bz2 xz zst cab',
+  code: 'js ts jsx tsx mjs cjs json rs py c h cpp hpp cc cs java kt go rb php lua sh ps1 psm1 bat cmd html htm css scss less xml yaml yml toml ini cfg conf sql swift dart vue svelte gradle lock gitignore editorconfig env reg vbs',
+  text: 'txt md log csv rtf nfo srt ass',
+  doc: 'doc docx odt pages epub fb2 djvu',
+  sheet: 'xls xlsx ods',
+  slide: 'ppt pptx odp key',
+  pdf: 'pdf',
+  app: 'exe msi appx msix msixbundle com scr',
+  link: 'lnk url',
+  font: 'ttf otf woff woff2',
+  disk: 'iso img vhd vhdx dmg',
+  sys: 'dll sys drv ocx cpl efi',
+};
+const KIND = {};
+for (const [k, v] of Object.entries(KINDS)) for (const e of v.split(' ')) KIND[e] = k;
+const KN = {image: 'Изображение', video: 'Видео', audio: 'Аудио', archive: 'Архив', code: 'Код', text: 'Текст', doc: 'Документ', sheet: 'Таблица', slide: 'Презентация', app: 'Приложение', font: 'Шрифт', disk: 'Образ диска', sys: 'Системный файл'};
+const THUMB_KINDS = new Set(['image', 'video', 'pdf', 'doc', 'sheet', 'slide', 'font']);
+const ICON_KINDS = new Set(['app', 'link']);
+const TEXT_KINDS = new Set(['code', 'text']);
+
+function smallIcon(e) {
+  if (e.dir) return FOLDER;
+  const real = ICON_KINDS.has(e.k) || e.ext === 'ico';
+  return svg(G[e.k] || G.file) + (real ? `<img src="${thumbUrl(e, 32, true)}">` : '');
+}
+function bigIcon(e) {
+  if (e.dir) return FOLDER;
+  const ext = e.ext ? `<b class="ext">${esc(e.ext.slice(0, 4).toUpperCase())}</b>` : '';
+  return `<span class="bf"><svg viewBox="0 0 46 58" class="page"><path d="M6 1.5h23l12 12v41a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-51a2 2 0 0 1 2-2z"/><path d="M29 1.5v12h12"/></svg>${svg(G[e.k] || '', 'gl')}${ext}</span>`;
+}
+function thumbUrl(e, px, icon) {
+  return `${HOST}thumb?k=${icon ? 'i' : 't'}&s=${px}&v=${e.t}-${e.s}&p=${enc(e.p)}`;
+}
+function thumbImg(e, css) {
+  if (e.dir) return '';
+  const px = css * DPR() <= 96 ? 96 : css * DPR() <= 128 ? 128 : 256;
+  if (ICON_KINDS.has(e.k) || e.ext === 'ico') return `<img class="ti" src="${thumbUrl(e, 64, true)}">`;
+  if (THUMB_KINDS.has(e.k)) return `<img class="tn" src="${thumbUrl(e, px, false)}">`;
+  return '';
+}
+// картинки: загрузилась — прячем значок-заглушку, ошибка — убираем
+document.addEventListener('load', ev => { const t = ev.target; if (t.tagName === 'IMG' && t.parentNode) t.parentNode.classList.add('ok'); }, true);
+document.addEventListener('error', ev => { const t = ev.target; if (t.tagName === 'IMG' && !t.classList.contains('pvimg')) t.remove(); }, true);
+
+// ---------------------------------------------------------------- форматирование
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; };
+const nf = new Intl.NumberFormat('ru');
+const countText = n => nf.format(n) + ' ' + plural(n, 'элемент', 'элемента', 'элементов');
+function fmtSize(b) {
+  if (b == null) return '';
+  if (b < 1024) return b + ' Б';
+  const u = ['КБ', 'МБ', 'ГБ', 'ТБ'];
+  let i = -1;
+  do { b /= 1024; i++; } while (b >= 1024 && i < 3);
+  return (b < 10 ? b.toFixed(1) : Math.round(b)).toString().replace('.', ',') + ' ' + u[i];
+}
+function fmtDate(t) {
+  if (!t) return '';
+  const d = new Date(t), now = new Date();
+  const hm = d.toLocaleTimeString('ru', {hour: '2-digit', minute: '2-digit'});
+  const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (t >= day0) return 'сегодня, ' + hm;
+  if (t >= day0 - 864e5) return 'вчера, ' + hm;
+  if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString('ru', {day: 'numeric', month: 'short'}).replace('.', '') + ', ' + hm;
+  return d.toLocaleDateString('ru');
+}
+const fmtFull = t => t ? new Date(t).toLocaleString('ru', {day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '—';
+
+// ---------------------------------------------------------------- пути
+const isPC = p => p === 'pc';
+const key = p => (p || '').toLowerCase();
+function norm(p) {
+  p = String(p).trim().replace(/\//g, '\\').replace(/^"(.*)"$/, '$1');
+  if (/^[a-z]:$/i.test(p)) p += '\\';
+  if (p.length > 3) p = p.replace(/\\+$/, '');
+  if (/^[a-z]:/.test(p)) p = p[0].toUpperCase() + p.slice(1);
+  return p;
+}
+const join = (d, n) => d.endsWith('\\') ? d + n : d + '\\' + n;
+function parentOf(p) {
+  if (!p || isPC(p)) return null;
+  if (/^[A-Z]:\\$/i.test(p)) return 'pc';
+  const i = p.lastIndexOf('\\');
+  if (i < 0) return 'pc';
+  const r = p.slice(0, i);
+  if (p.startsWith('\\\\') && r.split('\\').length <= 3) return 'pc';
+  return /^[A-Z]:$/i.test(r) ? r + '\\' : r;
+}
+const dirOf = p => parentOf(p) || p;
+const knownBy = p => B.known.find(k => key(k.path) === key(p));
+const driveOf = p => drives.find(d => key(p).startsWith(key(d.root)));
+const driveName = d => (d.label || (d.kind === 'usb' ? 'USB-накопитель' : d.kind === 'net' ? 'Сетевой диск' : 'Локальный диск')) + ` (${d.letter}:)`;
+function baseName(p) {
+  if (isPC(p)) return 'Этот компьютер';
+  const k = knownBy(p);
+  if (k) return k.name;
+  if (/^[A-Z]:\\$/i.test(p)) { const d = drives.find(d => key(d.root) === key(p)); return d ? driveName(d) : p.slice(0, 2); }
+  return p.slice(p.lastIndexOf('\\') + 1) || p;
+}
+const homePath = () => (B.known.find(k => k.key === 'home') || {path: 'pc'}).path;
+const sameDrive = (a, b) => key(a).slice(0, 3) === key(b).slice(0, 3);
+
+// ---------------------------------------------------------------- записи
+function mk(dir, a) {
+  const n = a[0], f = a[1];
+  const dir_ = !!(f & 1);
+  const dot = n.lastIndexOf('.');
+  const ext = dir_ || dot <= 0 ? '' : n.slice(dot + 1).toLowerCase();
+  const k = dir_ ? 'folder' : KIND[ext] || 'file';
+  const e = {n, f, s: a[2], t: a[3], p: join(dir, n), dir: dir_, ext, k, hid: !!(f & 6), lc: n.toLowerCase()};
+  e.tn = dir_ ? 'Папка' : k === 'pdf' ? 'Документ PDF' : k === 'link' ? 'Ярлык' : KN[k] ? KN[k] + ' ' + ext.toUpperCase() : ext ? 'Файл ' + ext.toUpperCase() : 'Файл';
+  return e;
+}
+function mkSearch(a) {
+  const p = a[0], i = p.lastIndexOf('\\');
+  const loc = i <= 2 ? p.slice(0, 3) : p.slice(0, i);
+  const e = mk(loc, [p.slice(i + 1), a[1], a[2], a[3]]);
+  e.p = p; e.loc = loc;
+  return e;
+}
+
+// ---------------------------------------------------------------- вкладки и переходы
+const tab = () => tabs[act];
+function newTab(path, at, activate = true) {
+  const t = {id: ++tabSeq, path: null, hist: [], hi: -1, items: [], vis: [], idx: new Map(), sel: new Set(), cur: null, anchor: null, scroll: 0, err: null, loading: false, filter: '', search: null, stale: false, gen: 0, mem: new Map(), wantSel: null};
+  tabs.splice(at ?? tabs.length, 0, t);
+  if (activate) { saveScroll(); act = tabs.indexOf(t); }
+  go(t, path || homePath());
+  paintTabs();
+  return t;
+}
+function saveScroll() { const t = tab(); if (t) { t.scroll = scroller.scrollTop; if (t.path) t.mem.set(key(t.path), {scroll: scroller.scrollTop, cur: t.cur}); } }
+function activate(i) {
+  if (i < 0 || i >= tabs.length || i === act) return;
+  saveScroll(); act = i; clearNodes();
+  const t = tab();
+  $('#find').value = t.search ? t.search.q : t.filter; findState();
+  if (t.stale) load(t, true);
+  paint(); scroller.scrollTop = t.scroll; render(); saveSoon();
+}
+function closeTab(i = act) {
+  if (tabs.length === 1) { send('win', {k: 'close'}); return; }
+  if (tabs[i].search) send('cancel');
+  tabs.splice(i, 1);
+  if (act > i || act >= tabs.length) act = Math.max(0, act - 1);
+  clearNodes(); const t = tab();
+  if (t.stale) load(t, true);
+  paint(); scroller.scrollTop = t.scroll; render(); watchTabs(); saveSoon();
+}
+async function go(t, path, o = {}) {
+  path = isPC(path) ? 'pc' : norm(path);
+  if (t === tab() && t.path) saveScroll();
+  if (o.push !== false) {
+    t.hist = t.hist.slice(0, t.hi + 1);
+    if (t.hist[t.hi] !== path) { t.hist.push(path); t.hi = t.hist.length - 1; }
+  }
+  const from = t.path;
+  if (t.search) { send('cancel'); t.search = null; }
+  t.filter = '';
+  if (key(from) !== key(path)) {
+    t.sel.clear(); t.cur = null; t.anchor = null; t.scroll = 0;
+    const m = t.mem.get(key(path));
+    if (o.select) t.wantSel = o.select;
+    else if (from && parentOf(from) && key(parentOf(from)) === key(path)) t.wantSel = from;
+    else if (m && m.cur) t.wantSel = m.cur;
+    t.restore = m ? m.scroll : 0;
+  } else if (o.select) t.wantSel = o.select;
+  t.path = path;
+  if (t === tab()) { $('#find').value = ''; findState(); clearNodes(); }
+  addRecent(path);
+  paintTabs(); if (t === tab()) { paintPath(); paintNav(); paintSide(); }
+  await load(t);
+  watchTabs(); saveSoon();
+}
+async function load(t, keep = false) {
+  const path = t.path, gen = ++t.gen;
+  if (isPC(path)) {
+    t.items = []; t.err = null; t.loading = false; recompute(t);
+    if (t === tab()) { paint(); await refreshDrives(); }
+    return;
+  }
+  t.loading = true;
+  const timer = setTimeout(() => { if (t.gen === gen && t === tab()) { prog(true); paintEmpty(); paintStatus(); } }, 150);
+  try {
+    const arr = await call('list', {p: path});
+    if (t.gen !== gen) return;
+    t.items = arr.map(a => mk(path, a)); t.err = null;
+  } catch (e) {
+    if (t.gen !== gen) return;
+    t.items = []; t.err = String(e);
+  }
+  clearTimeout(timer); prog(false);
+  t.loading = false; t.stale = false;
+  recompute(t);
+  if (keep) for (const k of [...t.sel]) if (!t.idx.has(k)) t.sel.delete(k);
+  if (keep && t.cur && !t.idx.has(t.cur)) t.cur = null;
+  if (t.wantSel) {
+    const k = key(t.wantSel);
+    if (t.idx.has(k)) { t.sel = new Set([k]); t.cur = k; t.anchor = k; t.reveal = true; }
+    t.wantSel = null;
+  }
+  if (t === tab()) {
+    if (!keep) clearNodes();
+    paint();
+    if (t.restore != null && !keep) { scroller.scrollTop = t.restore; t.restore = null; render(); }
+    if (t.reveal) { reveal(); t.reveal = false; }
+  }
+  if (!booted && t === tab() && initDone) boot();
+}
+function recompute(t) {
+  let src = t.search ? t.search.items : t.items;
+  if (!S.hidden) src = src.filter(e => !e.hid);
+  if (t.filter) { const q = t.filter.toLowerCase(); src = src.filter(e => e.lc.includes(q)); }
+  const {k, d} = S.sort, c = collator.compare;
+  const cmp = k === 'date' ? (a, b) => (a.t - b.t) || c(a.n, b.n) : k === 'size' ? (a, b) => (a.s - b.s) || c(a.n, b.n) : k === 'type' ? (a, b) => c(a.tn, b.tn) || c(a.n, b.n) : (a, b) => c(a.n, b.n);
+  src = src.slice().sort((a, b) => (b.dir - a.dir) || d * cmp(a, b));
+  t.vis = src; t.idx = new Map(src.map((e, i) => [key(e.p), i]));
+}
+function back() { const t = tab(); if (t.search) return exitSearch(t); if (t.hi > 0) { t.hi--; go(t, t.hist[t.hi], {push: false}); } }
+function fwd() { const t = tab(); if (t.hi < t.hist.length - 1) { t.hi++; go(t, t.hist[t.hi], {push: false}); } }
+function up() { const t = tab(); if (t.search) return exitSearch(t); const p = parentOf(t.path); if (p) go(t, p); }
+function addRecent(p) { if (isPC(p)) return; S.recent = [p, ...S.recent.filter(x => key(x) !== key(p))].slice(0, 60); }
+function watchTabs() { send('watch', {dirs: [...new Set(tabs.filter(t => !isPC(t.path)).map(t => t.path))]}); }
+
+// ---------------------------------------------------------------- отрисовка
+const nodes = new Map();
+let nodesTab = null;
+function clearNodes() { for (const el of nodes.values()) el.remove(); nodes.clear(); }
+function geo() {
+  const W = scroller.clientWidth;
+  if (S.view === 'list') return {cols: 1, rowH: 30, pad: 4, tw: W};
+  const inner = W - 16;
+  const cols = Math.max(1, Math.floor(inner / 112));
+  return {cols, rowH: 126, pad: 8, tw: inner / cols};
+}
+function build(e) {
+  const el = document.createElement('div');
+  el._e = e; el.dataset.k = key(e.p); el.draggable = true;
+  const t = tab();
+  if (S.view === 'list') {
+    el.className = 'row' + (e.hid ? ' hid' : '');
+    el.innerHTML = `<span class="ic">${smallIcon(e)}</span><span class="nm">${esc(e.n)}</span>` +
+      (t.search ? `<span class="lc">${esc(e.loc)}</span>` : '') +
+      `<span class="dt">${fmtDate(e.t)}</span>` + (t.search ? '' : `<span class="ty">${esc(e.tn)}</span>`) +
+      `<span class="sz">${e.dir ? '' : fmtSize(e.s)}</span>`;
+  } else {
+    el.className = 'tile' + (e.hid ? ' hid' : '');
+    el.innerHTML = `<div class="th">${bigIcon(e)}${thumbImg(e, 72)}</div><div class="nm">${esc(e.n)}</div>`;
+  }
+  return el;
+}
+let renamingEl = null;
+function render() {
+  const t = tab();
+  if (!t) return;
+  if (isPC(t.path)) { clearNodes(); sizer.style.height = '0'; return; }
+  if (nodesTab !== t.id + S.view + !!t.search) { clearNodes(); nodesTab = t.id + S.view + !!t.search; }
+  const g = geo(), list = t.vis, rows = Math.ceil(list.length / g.cols);
+  sizer.style.height = (rows * g.rowH + g.pad * 2) + 'px';
+  const top = scroller.scrollTop, H = scroller.clientHeight;
+  const r0 = Math.max(0, Math.floor((top - g.pad) / g.rowH) - 3);
+  const r1 = Math.min(rows, Math.ceil((top + H - g.pad) / g.rowH) + 3);
+  const seen = new Set();
+  for (let i = r0 * g.cols, n = Math.min(list.length, r1 * g.cols); i < n; i++) {
+    const e = list[i], k = key(e.p);
+    seen.add(k);
+    let el = nodes.get(k);
+    if (!el || el._e !== e) {
+      if (el && el === renamingEl) { /* не трогаем поле переименования */ }
+      else { const nel = build(e); if (el) el.replaceWith(nel); else items.appendChild(nel); el = nel; nodes.set(k, el); }
+    }
+    const r = Math.floor(i / g.cols), c = i % g.cols;
+    el.style.transform = `translate(${S.view === 'list' ? 0 : Math.round(c * g.tw)}px,${g.pad + r * g.rowH}px)`;
+    if (S.view !== 'list') el.style.width = Math.floor(g.tw - 8) + 'px';
+    el.dataset.i = i;
+    el.classList.toggle('sel', t.sel.has(k));
+    el.classList.toggle('cur', t.cur === k && t.sel.size !== 1);
+    el.classList.toggle('cut', cutSet.has(k));
+  }
+  for (const [k, el] of nodes) if (!seen.has(k) && el !== renamingEl) { el.remove(); nodes.delete(k); }
+}
+function paintSel() {
+  const t = tab();
+  for (const [k, el] of nodes) {
+    el.classList.toggle('sel', t.sel.has(k));
+    el.classList.toggle('cur', t.cur === k && t.sel.size !== 1);
+  }
+  paintStatus(); schedulePreview();
+}
+function paintHead() {
+  const t = tab(), {k, d} = S.sort;
+  document.documentElement.style.setProperty('--hr', (10 + scroller.offsetWidth - scroller.clientWidth) + 'px');
+  const cols = t.search ? [['name', 'Имя'], ['loc', 'Папка'], ['date', 'Изменён'], ['size', 'Размер', 'r']] : [['name', 'Имя'], ['date', 'Изменён'], ['type', 'Тип'], ['size', 'Размер', 'r']];
+  document.documentElement.style.setProperty('--cols', t.search ? 'minmax(0,1fr) minmax(0,.8fr) 140px 84px' : 'minmax(0,1fr) 140px 150px 84px');
+  $('#head').innerHTML = cols.map(([id, n, cls]) => `<div data-k="${id}" class="${cls || ''}${id === k ? ' on' : ''}">${id === k && cls ? svg(d > 0 ? UI.up : UI.down) : ''}${n}${id === k && !cls ? svg(d > 0 ? UI.up : UI.down) : ''}</div>`).join('');
+}
+function paintEmpty() {
+  const t = tab(), el = $('#empty');
+  let html = '';
+  if (!isPC(t.path) && t.vis.length === 0) {
+    if (t.loading) html = '<div class="spin"></div>';
+    else if (t.err) html = svg(UI.lock) + esc(t.err);
+    else if (t.search) html = t.search.done ? svg(UI.search) + 'Ничего не найдено' : '<div class="spin"></div>Ищу…';
+    else if (t.filter) html = svg(UI.search) + 'Нет совпадений';
+    else html = svg(UI.empty) + 'Папка пуста';
+  }
+  el.innerHTML = html; el.classList.toggle('on', !!html);
+}
+function paint() {
+  const t = tab();
+  if (!t) return;
+  $('#pane').classList.toggle('grid', S.view !== 'list');
+  $('#pane').classList.toggle('pc', isPC(t.path));
+  $('#vlist').classList.toggle('on', S.view === 'list');
+  $('#vgrid').classList.toggle('on', S.view !== 'list');
+  $('#vprev').classList.toggle('on', S.preview);
+  document.body.classList.toggle('nopv', !S.preview);
+  paintTabs(); paintNav(); paintPath(); paintSide(); paintHead(); paintEmpty();
+  if (isPC(t.path)) renderPC(); else render();
+  paintStatus(); schedulePreview();
+}
+function paintNav() {
+  const t = tab();
+  $('#back').classList.toggle('off', !(t.hi > 0 || t.search));
+  $('#fwd').classList.toggle('off', !(t.hi < t.hist.length - 1));
+  $('#up').classList.toggle('off', !parentOf(t.path) && !t.search);
+}
+function tabIcon(t) { return t.search ? svg(UI.search) : isPC(t.path) ? svg(UI.pc) : FOLDER; }
+function tabTitle(t) { return t.search ? `Поиск «${t.search.q}»` : baseName(t.path || ''); }
+function paintTabs() {
+  $('#tabs').innerHTML = tabs.map((t, i) => `<div class="tab${i === act ? ' on' : ''}" data-i="${i}" title="${esc(isPC(t.path) ? 'Этот компьютер' : t.path)}">${tabIcon(t)}<span class="ttl">${esc(tabTitle(t))}</span><div class="x">${svg('<path d="M4 4l8 8M12 4l-8 8"/>')}</div></div>`).join('');
+  const w = $('#tabs').clientWidth / Math.max(1, tabs.length);
+  document.title = tabTitle(tab()) + ' — Files';
+}
+function crumbSegs(p) {
+  const segs = [{p: 'pc', n: '', ic: svg(UI.pc)}];
+  if (isPC(p)) { segs[0].n = 'Этот компьютер'; return segs; }
+  const home = homePath();
+  let rest = p, base = '';
+  if (key(p).startsWith(key(home)) && !isPC(home)) {
+    segs.push({p: home, n: 'Домашняя'}); base = home; rest = p.slice(home.length);
+  } else if (/^[A-Z]:\\/i.test(p)) {
+    const root = p.slice(0, 3); const d = drives.find(d => key(d.root) === key(root));
+    segs.push({p: root, n: d && d.label ? `${d.label} (${d.letter}:)` : root.slice(0, 2)}); base = root; rest = p.slice(3);
+  } else if (p.startsWith('\\\\')) {
+    const parts = p.slice(2).split('\\'); base = '\\\\' + parts.slice(0, 2).join('\\'); segs.push({p: base, n: base}); rest = p.slice(base.length);
+  }
+  for (const part of rest.split('\\').filter(Boolean)) { base = join(base, part); segs.push({p: base, n: part}); }
+  return segs;
+}
+function paintPath() {
+  const t = tab(), c = $('#crumbs');
+  const segs = crumbSegs(t.path);
+  const chev = `<span class="chev">${svg(UI.chev)}</span>`;
+  const html = s => `<span class="cr" data-p="${esc(s.p)}">${s.ic || ''}${s.n ? `<span>${esc(s.n)}</span>` : ''}</span>`;
+  c.innerHTML = segs.map(html).join(chev);
+  // не влезает — прячем начало пути за «…»
+  let cut = 1;
+  while (c.scrollWidth > c.clientWidth && cut < segs.length - 1) {
+    c.innerHTML = html(segs[0]) + chev + `<span class="cr more" data-p="${esc(segs[cut].p)}"><span>…</span></span>` + chev + segs.slice(cut + 1).map(html).join(chev);
+    cut++;
+  }
+}
+function paintSide() {
+  const t = tab(), cur = key(t ? t.path : '');
+  const icon = k => svg(UI[k] || UI.documents);
+  const item = (p, name, ic, extra = '') => `<div class="si${key(p) === cur ? ' on' : ''}" data-p="${esc(p)}"${extra}>${ic}<span>${esc(name)}</span></div>`;
+  let h = '<div class="sec">Избранное</div>';
+  const order = ['home', 'desktop', 'downloads', 'documents', 'pictures', 'music', 'videos'];
+  for (const k of order) { const f = B.known.find(x => x.key === k); if (f) h += item(f.path, f.name, icon(k)); }
+  h += `<div class="sec pins">Закреплённые</div>`;
+  if (!S.pins.length) h += `<div class="si" style="color:#444;pointer-events:none">${svg(UI.pin)}<span>Перетащите папку сюда</span></div>`;
+  for (const p of S.pins) h += item(p, baseName(p), FOLDER, ' data-pin="1"');
+  h += '<div class="sec">Устройства</div>' + item('pc', 'Этот компьютер', svg(UI.pc));
+  for (const d of drives) {
+    const pct = d.total ? Math.round((1 - d.free / d.total) * 100) : 0;
+    h += `<div class="si drv${key(d.root) === cur ? ' on' : ''}" data-p="${esc(d.root)}">${svg(UI[d.kind] || UI.disk)}<div class="dn"><span>${esc(driveName(d))}</span><i><u class="${pct > 90 ? 'full' : ''}" style="width:${pct}%"></u></i></div><small>${d.total ? fmtSize(d.free) : ''}</small></div>`;
+  }
+  h += `<div class="si" data-p="shell:RecycleBinFolder">${svg(UI.trash)}<span>Корзина</span></div>`;
+  $('#side').innerHTML = h;
+}
+function renderPC() {
+  const tiles = B.known.filter(k => k.key !== 'home').map(k => `<div class="pck" data-p="${esc(k.path)}">${FOLDER}<span>${esc(k.name)}</span></div>`).join('');
+  const dr = drives.map(d => {
+    const pct = d.total ? Math.round((1 - d.free / d.total) * 100) : 0;
+    return `<div class="pcdrive" data-p="${esc(d.root)}">${svg(UI[d.kind] || UI.disk)}<div><b>${esc(driveName(d))}</b><i><u class="${pct > 90 ? 'full' : ''}" style="width:${pct}%"></u></i><small>${d.total ? `${fmtSize(d.free)} свободно из ${fmtSize(d.total)}` : 'нет данных'}</small></div></div>`;
+  }).join('');
+  $('#pcview').innerHTML = `<div class="pch">Папки</div><div class="pcg">${tiles}</div><div class="pch">Диски</div><div class="pcd">${dr || '<div class="spin"></div>'}</div>`;
+}
+let busyN = 0;
+function prog(on) { $('#prog').classList.toggle('on', on || busyN > 0); }
+function paintStatus() {
+  const t = tab();
+  let a = '';
+  if (isPC(t.path)) a = `${drives.length} ${plural(drives.length, 'диск', 'диска', 'дисков')}`;
+  else if (t.search) {
+    const s = t.search;
+    a = (s.done ? '' : '<div class="spin"></div>') + `<b>Найдено ${nf.format(t.vis.length)}</b> · просмотрено ${nf.format(s.scanned)} в «${esc(baseName(s.root))}»`;
+  } else if (!t.loading) {
+    a = countText(t.vis.length);
+    if (t.filter) a += ` из ${nf.format(t.items.filter(e => S.hidden || !e.hid).length)}`;
+    const hidden = S.hidden ? 0 : t.items.filter(e => e.hid).length;
+    if (hidden && !t.filter) a += ` · скрытых ${hidden}`;
+  }
+  if (t.sel.size) {
+    const s = selEntries(t), files = s.filter(e => !e.dir);
+    if (s.length) a += ` <b>· выбрано ${nf.format(s.length)}</b>` + (files.length ? ` · ${fmtSize(files.reduce((x, e) => x + e.s, 0))}` : '');
+  }
+  if (busyN) a = '<div class="spin"></div>' + a;
+  $('#st1').innerHTML = a;
+  const d = !isPC(t.path) && driveOf(t.path);
+  $('#st2').textContent = d && d.total ? `${d.letter}: свободно ${fmtSize(d.free)} из ${fmtSize(d.total)}` : '';
+}
+async function refreshDrives() {
+  try { drives = await call('drives'); } catch (e) { drives = []; }
+  paintSide(); if (isPC(tab().path)) renderPC(); paintStatus(); paintPath();
+}
+
+// ---------------------------------------------------------------- выделение
+const selEntries = t => [...t.sel].map(k => t.vis[t.idx.get(k)]).filter(Boolean);
+const curIndex = t => t.cur != null && t.idx.has(t.cur) ? t.idx.get(t.cur) : -1;
+const curEntry = t => { const i = curIndex(t); return i >= 0 ? t.vis[i] : selEntries(t)[0] || null; };
+function selectOnly(t, k) { t.sel = new Set([k]); t.cur = k; t.anchor = k; }
+function toggleSel(t, k) { if (t.sel.has(k)) t.sel.delete(k); else t.sel.add(k); t.cur = k; t.anchor = k; }
+function rangeTo(t, k, add) {
+  const a = t.anchor != null && t.idx.has(t.anchor) ? t.idx.get(t.anchor) : 0, b = t.idx.get(k);
+  if (!add) t.sel = new Set();
+  for (let i = Math.min(a, b); i <= Math.max(a, b); i++) t.sel.add(key(t.vis[i].p));
+  t.cur = k;
+}
+function reveal() {
+  const t = tab(), i = curIndex(t);
+  if (i < 0) return;
+  const g = geo(), y = g.pad + Math.floor(i / g.cols) * g.rowH;
+  if (y < scroller.scrollTop) scroller.scrollTop = y - g.pad;
+  else if (y + g.rowH > scroller.scrollTop + scroller.clientHeight) scroller.scrollTop = y + g.rowH - scroller.clientHeight + g.pad;
+  render();
+}
+function moveCur(delta, shift, ctrl) {
+  const t = tab(), n = t.vis.length;
+  if (!n) return;
+  let i = curIndex(t);
+  const j = i < 0 ? (delta > 0 ? 0 : n - 1) : Math.max(0, Math.min(n - 1, i + delta));
+  const k = key(t.vis[j].p);
+  if (shift) rangeTo(t, k, ctrl); else if (ctrl) t.cur = k; else selectOnly(t, k);
+  reveal(); paintSel();
+}
+const itemEl = el => el && el.closest && el.closest('.row,.tile');
+
+// ---------------------------------------------------------------- действия
+function openEntry(e, newtab) {
+  if (e.dir) { if (newtab) { newTab(e.p, act + 1, false); } else go(tab(), e.p); }
+  else call('open', {p: e.p}).catch(err => toast(err, true));
+}
+function openSel(newtab) {
+  const t = tab(), s = selEntries(t);
+  if (!s.length) return;
+  if (s.length === 1) return openEntry(s[0], newtab);
+  const dirs = s.filter(e => e.dir), files = s.filter(e => !e.dir).slice(0, 15);
+  for (const d of dirs.slice(0, 8)) newTab(d.p, act + 1, false);
+  for (const f of files) openEntry(f);
+}
+async function copySel(cut) {
+  const s = selEntries(tab());
+  if (!s.length) return;
+  await call('clip', {k: cut ? 'cut' : 'copy', src: s.map(e => e.p)});
+  cutSet = cut ? new Set(s.map(e => key(e.p))) : new Set();
+  render();
+  toast((cut ? 'Вырезано: ' : 'Скопировано: ') + (s.length === 1 ? s[0].n : countText(s.length)));
+}
+async function runOp(fn, label) {
+  busyN++; prog(true); paintStatus();
+  try { return await fn(); } catch (e) { toast(e, true); return null; }
+  finally { busyN--; prog(false); paintStatus(); }
+}
+async function paste(dst) {
+  const t = tab();
+  dst = dst || t.path;
+  if (isPC(dst) || t.search && !arguments.length) return;
+  const r = await runOp(() => call('paste', {p: dst}));
+  if (!r) return;
+  if (r.none) return toast('В буфере обмена нет файлов');
+  cutSet.clear();
+  if (!r.aborted) toast((r.x.cut ? 'Перемещено: ' : 'Вставлено: ') + countText(r.x.n));
+  reloadSoon();
+}
+async function doMove(src, dst, copy) {
+  const r = await runOp(() => call('op', {k: copy ? 'copy' : 'move', src, dst}));
+  if (r && !r.aborted) toast((copy ? 'Скопировано в «' : 'Перемещено в «') + baseName(dst) + '»');
+  reloadSoon();
+}
+async function del(perm) {
+  const t = tab(), s = selEntries(t);
+  if (!s.length) return;
+  if (perm && !await confirmBox(`Удалить навсегда ${s.length === 1 ? '«' + s[0].n + '»' : countText(s.length)}?`, 'Файлы не попадут в корзину. Это нельзя отменить.', 'Удалить')) return;
+  const last = Math.max(...s.map(e => t.idx.get(key(e.p))));
+  const next = t.vis.slice(last + 1).find(e => !t.sel.has(key(e.p))) || t.vis.slice(0, last).reverse().find(e => !t.sel.has(key(e.p)));
+  const r = await runOp(() => call('op', {k: perm ? 'purge' : 'delete', src: s.map(e => e.p)}));
+  if (r && !r.aborted) { toast(perm ? 'Удалено' : 'Перемещено в корзину'); if (next) t.wantSel = next.p; t.sel.clear(); }
+  load(t, true);
+}
+function copyPath() {
+  const t = tab(), s = selEntries(t);
+  const text = s.length ? s.map(e => e.p).join('\r\n') : isPC(t.path) ? '' : t.path;
+  if (!text) return;
+  call('cliptext', {t: text}).then(() => toast('Путь скопирован'));
+}
+function props() { const t = tab(), e = curEntry(t); const p = e ? e.p : t.path; if (!isPC(p)) send('props', {p}); }
+function term() { const t = tab(); const e = selEntries(t).length === 1 && selEntries(t)[0]; send('term', {p: e && e.dir ? e.p : isPC(t.path) ? homePath() : t.path}); }
+async function newItem(kind) {
+  const t = tab();
+  if (isPC(t.path) || t.search) return;
+  try {
+    const name = await call(kind === 'dir' ? 'mkdir' : 'mkfile', {p: t.path});
+    t.wantSel = join(t.path, name);
+    await load(t, true);
+    startRename();
+  } catch (e) { toast(e, true); }
+}
+function startRename() {
+  const t = tab(), e = curEntry(t);
+  if (!e) return;
+  const k = key(e.p);
+  selectOnly(t, k); reveal(); paintSel();
+  const el = nodes.get(k);
+  if (!el) return;
+  const nm = el.querySelector('.nm');
+  const inp = document.createElement('input');
+  inp.className = 'ren'; inp.value = e.n; inp.spellcheck = false;
+  nm.textContent = ''; nm.appendChild(inp);
+  el.draggable = false; renamingEl = el;
+  inp.focus();
+  const dot = e.dir ? -1 : e.n.lastIndexOf('.');
+  inp.setSelectionRange(0, dot > 0 ? dot : e.n.length);
+  let fin = false;
+  const done = async ok => {
+    if (fin) return; fin = true;
+    const v = inp.value.trim();
+    renamingEl = null; el.remove(); nodes.delete(k); render(); scroller.focus();
+    if (!ok || !v || v === e.n) return;
+    if (/[\\/:*?"<>|]/.test(v)) return toast('Имя не может содержать \\ / : * ? " < > |', true);
+    const r = await runOp(() => call('op', {k: 'rename', p: e.p, name: v}));
+    if (r && !r.aborted) t.wantSel = join(dirOf(e.p), v);
+    if (t.search) { const it = t.search.items.find(x => x === e); if (it && r && !r.aborted) { Object.assign(it, mkSearch([join(dirOf(e.p), v), e.f, e.s, e.t])); recompute(t); render(); } }
+    else load(t, true);
+  };
+  inp.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Enter') done(true); else if (ev.key === 'Escape') done(false); });
+  inp.addEventListener('blur', () => done(true));
+  inp.addEventListener('mousedown', ev => ev.stopPropagation());
+  inp.addEventListener('dblclick', ev => ev.stopPropagation());
+}
+let reloadT;
+function reloadSoon() { clearTimeout(reloadT); reloadT = setTimeout(() => { const t = tab(); if (!isPC(t.path) && !t.search) load(t, true); }, 250); }
+function setView(v) { saveScroll(); S.view = v; clearNodes(); paint(); reveal(); saveSoon(); }
+function setSort(k) {
+  if (S.sort.k === k) S.sort.d = -S.sort.d; else S.sort = {k, d: k === 'date' || k === 'size' ? -1 : 1};
+  for (const t of tabs) recompute(t);
+  paintHead(); render(); saveSoon();
+}
+function toggleHidden() { S.hidden = !S.hidden; for (const t of tabs) recompute(t); paint(); toast(S.hidden ? 'Скрытые файлы показаны' : 'Скрытые файлы спрятаны'); saveSoon(); }
+function togglePreview() { S.preview = !S.preview; pvKey = null; paint(); saveSoon(); }
+const isPinned = p => S.pins.some(x => key(x) === key(p));
+function togglePin(p) {
+  if (isPC(p)) return;
+  if (isPinned(p)) S.pins = S.pins.filter(x => key(x) !== key(p)); else S.pins.push(p);
+  paintSide(); saveSoon();
+}
+function refresh() { const t = tab(); refreshDrives(); if (t.search) deepSearch(t.search.q); else load(t, true); }
+
+// ---------------------------------------------------------------- поиск
+let sidSeq = 0, searchPaint = 0;
+function deepSearch(q) {
+  const t = tab();
+  q = q.trim();
+  if (isPC(t.path) || !q) return;
+  const root = t.search ? t.search.root : t.path;
+  const sid = ++sidSeq;
+  t.search = {q, root, sid, items: [], done: false, scanned: 0};
+  t.filter = ''; t.sel.clear(); t.cur = null;
+  send('search', {p: root, q, sid, hidden: S.hidden});
+  recompute(t); clearNodes(); scroller.scrollTop = 0; paint();
+}
+function exitSearch(t) {
+  send('cancel');
+  t.search = null; t.sel.clear(); t.cur = null;
+  if (t === tab()) { $('#find').value = ''; findState(); }
+  recompute(t); clearNodes(); paint(); scroller.focus();
+}
+function onSearch(m) {
+  const t = tabs.find(t => t.search && t.search.sid === m.sid);
+  if (!t) return;
+  for (const a of m.items) t.search.items.push(mkSearch(a));
+  t.search.done = m.done; t.search.scanned = m.scanned;
+  const now = performance.now();
+  if (m.done || now - searchPaint > 200) {
+    searchPaint = now; recompute(t);
+    if (t === tab()) { render(); paintEmpty(); paintStatus(); paintTabs(); }
+  }
+}
+function findState() { $('#findw').classList.toggle('has', !!$('#find').value); }
+
+// ---------------------------------------------------------------- предпросмотр
+let pvTimer, pvKey = null, pvDir = null;
+function schedulePreview() { clearTimeout(pvTimer); pvTimer = setTimeout(preview, 80); }
+async function preview() {
+  if (!S.preview) return;
+  const t = tab(), s = selEntries(t), el = $('#pv');
+  const hint = '<div class="pvhint">Пробел — скрыть панель</div>';
+  if (s.length > 1) {
+    const k = 'multi' + s.length;
+    if (k === pvKey) return; pvKey = k; cancelSize();
+    const files = s.filter(e => !e.dir), dirs = s.length - files.length;
+    el.innerHTML = `<div class="pvstack"><span></span><span></span><span>${s.length}</span></div><div class="pvn" style="text-align:center">Выбрано ${countText(s.length)}</div><div class="pvm" style="text-align:center">${[files.length ? `${files.length} ${plural(files.length, 'файл', 'файла', 'файлов')} · ${fmtSize(files.reduce((a, e) => a + e.s, 0))}` : '', dirs ? `${dirs} ${plural(dirs, 'папка', 'папки', 'папок')}` : ''].filter(Boolean).join(' · ')}</div>${hint}`;
+    return;
+  }
+  const e = s[0] || null;
+  if (!e) {
+    const k = 'dir:' + t.path + t.items.length;
+    if (k === pvKey) return; pvKey = k; cancelSize();
+    if (isPC(t.path)) {
+      const tot = drives.reduce((a, d) => a + d.total, 0), free = drives.reduce((a, d) => a + d.free, 0);
+      el.innerHTML = `<div class="pvbig">${svg(UI.pc).replace('<svg', '<svg style="width:72px;height:72px;stroke-width:.9;color:#9a9a9a"')}</div><div class="pvn">Этот компьютер</div><div class="pvm">${drives.length} ${plural(drives.length, 'диск', 'диска', 'дисков')}</div><dl class="pvi"><dt>Всего</dt><dd>${fmtSize(tot)}</dd><dt>Свободно</dt><dd>${fmtSize(free)}</dd></dl>${hint}`;
+      return;
+    }
+    const shown = t.items.filter(x => S.hidden || !x.hid);
+    const dirs = shown.filter(x => x.dir).length, files = shown.length - dirs;
+    el.innerHTML = `<div class="pvbig">${FOLDER}</div><div class="pvn">${esc(baseName(t.path))}</div><div class="pvm">${t.search ? 'Результаты поиска' : countText(shown.length)}</div><dl class="pvi"><dt>Папок</dt><dd>${nf.format(dirs)}</dd><dt>Файлов</dt><dd>${nf.format(files)}</dd><dt>Файлы здесь</dt><dd>${fmtSize(t.items.reduce((a, x) => a + (x.dir ? 0 : x.s), 0))}</dd><dt>Путь</dt><dd>${esc(t.path)}</dd></dl>${hint}`;
+    return;
+  }
+  const k = key(e.p) + '|' + e.t + '|' + e.s;
+  if (k === pvKey) return; pvKey = k;
+  const raw = HOST + 'raw?p=' + enc(e.p);
+  let media = '', box = false;
+  const big = ['psd', 'raw', 'cr2', 'nef', 'arw', 'dng', 'heic', 'heif', 'tif', 'tiff'];
+  if (e.k === 'image' && !big.includes(e.ext)) { media = `<img class="pvimg" src="${raw}">`; }
+  else if (e.k === 'video' && ['mp4', 'webm', 'm4v', 'mov'].includes(e.ext)) { media = `<video src="${raw}" controls muted loop preload="metadata"></video>`; }
+  else if (e.k === 'audio') { media = `<div class="pvbig"><div class="th">${bigIcon(e)}</div><audio src="${raw}" controls preload="metadata"></audio></div>`; }
+  else if (e.k === 'pdf') { media = `<iframe src="${raw}#toolbar=0&navpanes=0&view=FitH"></iframe>`; }
+  else if (e.dir) { media = `<div class="pvbig">${FOLDER}</div>`; }
+  else { media = `<div class="pvbig"><div class="th">${bigIcon(e)}${thumbImg(e, 120)}</div></div>`; }
+  const loc = e.loc ? `<dt>Папка</dt><dd>${esc(e.loc)}</dd>` : '';
+  el.innerHTML = `<div class="pvmedia${box ? ' box' : ''}">${media}</div><div class="pvn">${esc(e.n)}</div><div class="pvm">${esc(e.tn)}${e.dir ? '' : ' · ' + fmtSize(e.s)}</div><dl class="pvi">${e.dir ? '<dt>Содержит</dt><dd id="pvc">считаю…</dd><dt>Размер</dt><dd id="pvs">…</dd>' : ''}<dt>Изменён</dt><dd>${fmtFull(e.t)}</dd>${loc}<dt id="pvdk" hidden>Размеры</dt><dd id="pvd" hidden></dd></dl>${hint}`;
+  const img = el.querySelector('img.pvimg');
+  if (img) {
+    img.onload = () => { const d = $('#pvd'); if (d) { d.textContent = `${img.naturalWidth} × ${img.naturalHeight}`; d.hidden = false; $('#pvdk').hidden = false; } };
+    img.onerror = () => { img.replaceWith(Object.assign(document.createElement('div'), {className: 'pvbig', innerHTML: bigIcon(e)})); };
+  }
+  if (e.dir) { pvDir = e.p; send('dirsize', {p: e.p}); }
+  else cancelSize();
+  if (TEXT_KINDS.has(e.k) || (e.k === 'file' && e.s < 2e6)) {
+    try {
+      const r = await call('text', {p: e.p});
+      if (pvKey !== k || r.binary || r.text == null) return;
+      const pre = document.createElement('pre');
+      pre.className = 'pvtxt';
+      pre.textContent = r.text.slice(0, 60000) + (r.cut ? '\n…' : '');
+      el.querySelector('.pvmedia').replaceWith(pre);
+    } catch (e) {}
+  }
+}
+function cancelSize() { if (pvDir) { pvDir = null; send('dirsize', {p: ''}); } }
+function onDirSize(m) {
+  if (!pvDir || key(m.p) !== key(pvDir)) return;
+  const c = $('#pvc'), s = $('#pvs');
+  if (!c) return;
+  c.textContent = `${nf.format(m.files)} ${plural(m.files, 'файл', 'файла', 'файлов')}, ${nf.format(m.dirs)} ${plural(m.dirs, 'папка', 'папки', 'папок')}` + (m.done ? '' : '…');
+  s.textContent = fmtSize(m.bytes) + (m.done ? '' : '…');
+}
+
+// ---------------------------------------------------------------- меню
+let ctxItems = [], ctxSel = -1, ctxOpen = false;
+function menu(x, y, list) {
+  list = list.filter(Boolean).filter((it, i, a) => it !== '-' || (i > 0 && a[i - 1] !== '-' && i < a.length - 1));
+  ctxItems = list; ctxSel = -1;
+  const el = $('#ctx');
+  el.innerHTML = list.map((it, i) => {
+    if (it === '-') return '<div class="ms"></div>';
+    if (it.row) return `<div class="mr"><span>${it.row}</span>${it.opts.map(([v, n]) => `<i data-i="${i}" data-v="${v}" class="${v === it.cur ? 'on' : ''}">${n}</i>`).join('')}</div>`;
+    return `<div class="mi${it.dis ? ' dis' : ''}${it.b ? ' b' : ''}" data-i="${i}">${it.check !== undefined ? `<span class="ck">${it.check ? svg(UI.check) : ''}</span>` : ''}<span>${esc(it.t)}</span>${it.k ? `<kbd>${it.k}</kbd>` : ''}</div>`;
+  }).join('');
+  el.classList.add('on'); ctxOpen = true;
+  const r = el.getBoundingClientRect();
+  el.style.left = Math.max(4, Math.min(x, innerWidth - r.width - 6)) + 'px';
+  el.style.top = Math.max(4, y + r.height > innerHeight - 6 ? y - r.height : y) + 'px';
+}
+function closeMenu() { $('#ctx').classList.remove('on'); ctxOpen = false; }
+$('#ctx').addEventListener('mousedown', e => e.preventDefault());
+$('#ctx').addEventListener('click', e => {
+  const opt = e.target.closest('.mr i');
+  if (opt) { const it = ctxItems[+opt.dataset.i]; closeMenu(); it.f(opt.dataset.v); return; }
+  const mi = e.target.closest('.mi');
+  if (mi) { const it = ctxItems[+mi.dataset.i]; closeMenu(); it.f(); }
+});
+$('#ctx').addEventListener('mousemove', e => { const mi = e.target.closest('.mi'); if (mi) ctxHi(+mi.dataset.i); });
+function ctxHi(i) { ctxSel = i; for (const el of $('#ctx').querySelectorAll('.mi')) el.classList.toggle('on', +el.dataset.i === i); }
+function ctxKey(e) {
+  e.preventDefault();
+  const idx = ctxItems.map((it, i) => it !== '-' && !it.row && !it.dis ? i : -1).filter(i => i >= 0);
+  const p = idx.indexOf(ctxSel);
+  if (e.key === 'Escape') closeMenu();
+  else if (e.key === 'ArrowDown') ctxHi(idx[(p + 1) % idx.length]);
+  else if (e.key === 'ArrowUp') ctxHi(idx[(p - 1 + idx.length) % idx.length]);
+  else if (e.key === 'Enter' && ctxSel >= 0) { const it = ctxItems[ctxSel]; closeMenu(); it.f(); }
+}
+document.addEventListener('mousedown', e => { if (ctxOpen && !e.target.closest('#ctx')) closeMenu(); }, true);
+window.addEventListener('blur', closeMenu);
+
+function itemMenu(x, y, shift) {
+  const t = tab(), s = selEntries(t);
+  if (!s.length) return;
+  const one = s.length === 1 ? s[0] : null, dir = one && one.dir;
+  menu(x, y, [
+    {t: 'Открыть', k: 'Enter', b: true, f: () => openSel()},
+    dir && {t: 'Открыть в новой вкладке', k: 'Ctrl+Enter', f: () => openSel(true)},
+    one && !dir && {t: 'Открыть с помощью…', f: () => send('openwith', {p: one.p})},
+    t.search && one && {t: 'Перейти к расположению', f: () => go(t, one.loc, {select: one.p})},
+    '-',
+    {t: 'Вырезать', k: 'Ctrl+X', f: () => copySel(true)},
+    {t: 'Копировать', k: 'Ctrl+C', f: () => copySel(false)},
+    dir && {t: 'Вставить в эту папку', f: () => paste(one.p)},
+    {t: 'Копировать путь', k: 'Ctrl+Shift+C', f: copyPath},
+    '-',
+    one && {t: 'Переименовать', k: 'F2', f: startRename},
+    {t: 'Удалить', k: 'Del', f: () => del(false)},
+    '-',
+    dir && {t: isPinned(one.p) ? 'Открепить' : 'Закрепить в боковой панели', f: () => togglePin(one.p)},
+    dir && {t: 'Открыть в терминале', f: () => send('term', {p: one.p})},
+    one && {t: 'Показать в Проводнике', f: () => send('reveal', {p: one.p})},
+    {t: 'Свойства', k: 'Alt+Enter', f: props},
+    '-',
+    {t: 'Другие параметры', k: 'Shift+F10', f: () => send('menu', {src: s.map(e => e.p), x, y, shift})},
+  ]);
+}
+async function bgMenu(x, y) {
+  const t = tab();
+  if (isPC(t.path)) return;
+  let clip = 0;
+  try { clip = await call('clipinfo'); } catch (e) {}
+  menu(x, y, [
+    !t.search && {t: 'Вставить', k: 'Ctrl+V', dis: !clip, f: () => paste()},
+    !t.search && '-',
+    !t.search && {t: 'Новая папка', k: 'Ctrl+Shift+N', f: () => newItem('dir')},
+    !t.search && {t: 'Новый текстовый файл', f: () => newItem('file')},
+    '-',
+    {row: 'Вид', opts: [['list', 'Список'], ['grid', 'Плитка']], cur: S.view, f: setView},
+    {row: 'Порядок', opts: [['name', 'Имя'], ['date', 'Дата'], ['type', 'Тип'], ['size', 'Размер']], cur: S.sort.k, f: setSort},
+    {t: 'Скрытые файлы', check: S.hidden, k: 'Ctrl+H', f: toggleHidden},
+    '-',
+    {t: isPinned(t.path) ? 'Открепить папку' : 'Закрепить папку', f: () => togglePin(t.path)},
+    {t: 'Открыть в терминале', k: 'Ctrl+`', f: term},
+    {t: 'Открыть в Проводнике', f: () => send('explorer', {p: t.path})},
+    {t: 'Копировать путь', f: () => call('cliptext', {t: t.path}).then(() => toast('Путь скопирован'))},
+    {t: 'Свойства папки', f: () => send('props', {p: t.path})},
+    {t: 'Обновить', k: 'F5', f: refresh},
+  ]);
+}
+
+// ---------------------------------------------------------------- палитра команд
+const CMDS = [
+  ['Новая вкладка', 'Ctrl+T', () => newTab()],
+  ['Закрыть вкладку', 'Ctrl+W', () => closeTab()],
+  ['Новая папка', 'Ctrl+Shift+N', () => newItem('dir')],
+  ['Новый текстовый файл', '', () => newItem('file')],
+  ['Вставить', 'Ctrl+V', () => paste()],
+  ['Поиск в этой папке', 'Ctrl+F', () => focusFind()],
+  ['Перейти по адресу', 'Ctrl+L', () => editPath()],
+  ['Вид: список', '', () => setView('list')],
+  ['Вид: плитка', '', () => setView('grid')],
+  ['Панель просмотра', 'Пробел', () => togglePreview()],
+  ['Скрытые файлы', 'Ctrl+H', () => toggleHidden()],
+  ['Сортировать по имени', '', () => setSort('name')],
+  ['Сортировать по дате', '', () => setSort('date')],
+  ['Сортировать по типу', '', () => setSort('type')],
+  ['Сортировать по размеру', '', () => setSort('size')],
+  ['Копировать путь', 'Ctrl+Shift+C', () => copyPath()],
+  ['Открыть в терминале', 'Ctrl+`', () => term()],
+  ['Открыть в Проводнике', '', () => send('explorer', {p: isPC(tab().path) ? homePath() : tab().path})],
+  ['Закрепить / открепить папку', '', () => togglePin(tab().path)],
+  ['Свойства', 'Alt+Enter', () => props()],
+  ['Обновить', 'F5', () => refresh()],
+  ['Этот компьютер', '', () => go(tab(), 'pc')],
+  ['Корзина', '', () => send('explorer', {p: 'shell:RecycleBinFolder'})],
+];
+let palItems = [], palSel = 0, palOpen = false;
+function fuzzy(q, s) {
+  if (!q) return {sc: 0, m: []};
+  const ls = s.toLowerCase();
+  const at = ls.indexOf(q);
+  if (at >= 0) return {sc: 100 - at + (at === 0 || /[\s\\_\-.]/.test(ls[at - 1]) ? 50 : 0) - s.length * .1, m: [...Array(q.length).keys()].map(i => at + i)};
+  let i = 0, sc = 0, prev = -2; const m = [];
+  for (let j = 0; j < ls.length && i < q.length; j++) {
+    if (ls[j] === q[i]) { sc += j === prev + 1 ? 5 : (j === 0 || /[\s\\_\-.]/.test(ls[j - 1]) ? 4 : 1); m.push(j); prev = j; i++; }
+  }
+  return i === q.length ? {sc: sc - s.length * .1, m} : null;
+}
+const markup = (s, m) => { let o = '', set = new Set(m); for (let i = 0; i < s.length; i++) o += set.has(i) ? `<mark>${esc(s[i])}</mark>` : esc(s[i]); return o; };
+function palette() {
+  palOpen = true;
+  $('#veil').classList.add('on'); $('#pal').classList.add('on');
+  const inp = $('#palin'); inp.value = ''; inp.focus();
+  palFill();
+}
+function closePal() { palOpen = false; $('#veil').classList.remove('on'); $('#pal').classList.remove('on'); scroller.focus(); }
+function palFill() {
+  const q = $('#palin').value.trim().toLowerCase();
+  const t = tab(), out = [], seen = new Set();
+  const place = (p, n, grp, ic) => { if (seen.has(key(p))) return; seen.add(key(p)); out.push({grp, n, sub: isPC(p) ? '' : p, ic, f: () => go(tab(), p)}); };
+  for (const x of tabs) if (x !== t && !isPC(x.path)) place(x.path, baseName(x.path), 'Вкладки', FOLDER);
+  for (const p of S.pins) place(p, baseName(p), 'Закреплённые', FOLDER);
+  for (const k of B.known) place(k.path, k.name, 'Папки', svg(UI[k.key] || UI.documents));
+  for (const d of drives) place(d.root, driveName(d), 'Диски', svg(UI[d.kind] || UI.disk));
+  for (const p of S.recent) place(p, baseName(p), 'Недавние', FOLDER);
+  if (!isPC(t.path)) for (const e of t.vis.slice(0, 3000)) out.push({grp: 'В этой папке', n: e.n, sub: '', ic: e.dir ? FOLDER : svg(G[e.k] || G.file), f: () => { selectOnly(t, key(e.p)); reveal(); paintSel(); if (e.dir) go(t, e.p); else openEntry(e); }});
+  for (const [n, k, f] of CMDS) out.push({grp: 'Команды', n, sub: '', kbd: k, ic: svg(UI.cmd), f});
+  let res;
+  if (!q) res = out.filter(x => x.grp !== 'В этой папке').slice(0, 40).map(x => ({...x, m: []}));
+  else {
+    res = [];
+    for (const x of out) { const r = fuzzy(q, x.n); if (r) res.push({...x, m: r.m, sc: r.sc + (x.grp === 'Команды' ? 2 : x.grp === 'В этой папке' ? 4 : 6)}); }
+    res.sort((a, b) => b.sc - a.sc); res = res.slice(0, 40);
+  }
+  palItems = res; palSel = 0;
+  let grp = null, h = '';
+  res.forEach((x, i) => {
+    if (!q && x.grp !== grp) { grp = x.grp; h += `<div class="pg">${grp}</div>`; }
+    h += `<div class="pi${i === 0 ? ' on' : ''}" data-i="${i}">${x.ic}<span class="pt">${markup(x.n, x.m)}</span><span class="ps">${esc(x.sub)}</span>${x.kbd ? `<kbd>${x.kbd}</kbd>` : ''}</div>`;
+  });
+  $('#pall').innerHTML = h || '<div class="pg">Ничего не найдено</div>';
+}
+function palHi(i) {
+  palSel = i;
+  for (const el of $('#pall').querySelectorAll('.pi')) el.classList.toggle('on', +el.dataset.i === i);
+  const el = $('#pall').querySelector('.pi.on'); if (el) el.scrollIntoView({block: 'nearest'});
+}
+function palKey(e) {
+  if (e.key === 'Escape') { e.preventDefault(); closePal(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); palHi(Math.min(palItems.length - 1, palSel + 1)); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); palHi(Math.max(0, palSel - 1)); }
+  else if (e.key === 'Enter') { e.preventDefault(); const it = palItems[palSel]; closePal(); if (it) it.f(); }
+}
+$('#palin').addEventListener('input', palFill);
+$('#pall').addEventListener('mousemove', e => { const el = e.target.closest('.pi'); if (el && +el.dataset.i !== palSel) palHi(+el.dataset.i); });
+$('#pall').addEventListener('click', e => { const el = e.target.closest('.pi'); if (el) { const it = palItems[+el.dataset.i]; closePal(); it.f(); } });
+$('#veil').addEventListener('mousedown', closePal);
+
+// ---------------------------------------------------------------- уведомления и подтверждение
+let toastT;
+function toast(msg, err) {
+  const el = $('#toast');
+  el.textContent = String(msg).replace(/^Error: /, '');
+  el.className = 'on' + (err ? ' err' : '');
+  clearTimeout(toastT); toastT = setTimeout(() => el.className = err ? 'err' : '', err ? 4000 : 2200);
+}
+function confirmBox(title, text, ok) {
+  return new Promise(res => {
+    const m = $('#modal');
+    m.querySelector('h3').textContent = title; m.querySelector('p').textContent = text; m.querySelector('.ok').textContent = ok;
+    m.classList.add('on'); $('#veil').classList.add('on');
+    const fin = v => { m.classList.remove('on'); $('#veil').classList.remove('on'); document.removeEventListener('keydown', kd, true); scroller.focus(); res(v); };
+    const kd = e => { e.stopPropagation(); e.preventDefault(); if (e.key === 'Enter') fin(true); if (e.key === 'Escape') fin(false); };
+    document.addEventListener('keydown', kd, true);
+    m.querySelector('.ok').onclick = () => fin(true);
+    m.querySelector('.no').onclick = () => fin(false);
+    m.querySelector('.ok').focus();
+  });
+}
+
+// ---------------------------------------------------------------- адресная строка
+let sugg = [], suggSel = -1, suggT;
+function editPath() {
+  const t = tab();
+  $('#path').classList.add('edit');
+  const inp = $('#pathin');
+  inp.value = isPC(t.path) ? '' : t.path; inp.focus(); inp.select();
+}
+function endEdit() { $('#path').classList.remove('edit'); $('#sugg').classList.remove('on'); sugg = []; }
+async function submitPath(v) {
+  v = v.trim();
+  endEdit();
+  if (!v) return;
+  if (/^shell:/i.test(v)) return send('explorer', {p: v});
+  if (/^(этот компьютер|pc)$/i.test(v)) return go(tab(), 'pc');
+  v = v.replace(/%([^%]+)%/g, (m, n) => ({userprofile: homePath()}[n.toLowerCase()] || m));
+  if (v === '~') v = homePath(); else if (v.startsWith('~\\') || v.startsWith('~/')) v = join(homePath(), v.slice(2));
+  const p = norm(/^[a-z]:|^\\\\/i.test(v) || isPC(tab().path) ? v : join(tab().path, v));
+  const st = await call('stat', {p});
+  if (!st.ok) return toast(st.e || 'Путь не найден', true);
+  if (st.dir) go(tab(), p); else go(tab(), dirOf(p), {select: p});
+  scroller.focus();
+}
+async function suggest() {
+  const v = $('#pathin').value;
+  const i = v.lastIndexOf('\\');
+  if (i < 2 || !/^[a-z]:\\|^\\\\/i.test(v)) { $('#sugg').classList.remove('on'); sugg = []; return; }
+  const dir = v.slice(0, i + 1), frag = v.slice(i + 1).toLowerCase();
+  let list;
+  try { list = await call('list', {p: dir.length === 3 ? dir : dir.slice(0, -1)}); } catch (e) { list = []; }
+  if ($('#pathin').value !== v) return;
+  sugg = list.filter(a => a[1] & 1 && (S.hidden || !(a[1] & 6)) && a[0].toLowerCase().startsWith(frag)).map(a => dir + a[0]).sort(collator.compare).slice(0, 8);
+  suggSel = -1;
+  $('#sugg').innerHTML = sugg.map((p, i) => `<div class="sg" data-i="${i}">${FOLDER}<span>${esc(p)}</span></div>`).join('');
+  $('#sugg').classList.toggle('on', sugg.length > 0 && !(sugg.length === 1 && key(sugg[0]) === key(v)));
+}
+$('#pathin').addEventListener('input', () => { clearTimeout(suggT); suggT = setTimeout(suggest, 60); });
+$('#pathin').addEventListener('keydown', e => {
+  e.stopPropagation();
+  const hi = i => { suggSel = i; for (const el of $('#sugg').children) el.classList.toggle('on', +el.dataset.i === i); };
+  if (e.key === 'Enter') { e.preventDefault(); submitPath(suggSel >= 0 ? sugg[suggSel] : e.target.value); }
+  else if (e.key === 'Escape') { endEdit(); scroller.focus(); }
+  else if (e.key === 'Tab' && sugg.length) { e.preventDefault(); e.target.value = sugg[Math.max(0, suggSel)] + '\\'; suggest(); }
+  else if (e.key === 'ArrowDown' && sugg.length) { e.preventDefault(); hi(Math.min(sugg.length - 1, suggSel + 1)); }
+  else if (e.key === 'ArrowUp' && sugg.length) { e.preventDefault(); hi(Math.max(-1, suggSel - 1)); }
+});
+$('#pathin').addEventListener('blur', () => setTimeout(endEdit, 120));
+$('#sugg').addEventListener('mousedown', e => { e.preventDefault(); const el = e.target.closest('.sg'); if (el) submitPath(sugg[+el.dataset.i]); });
+$('#path').addEventListener('mousedown', e => {
+  if ($('#path').classList.contains('edit')) return;
+  const cr = e.target.closest('.cr');
+  if (cr) { e.preventDefault(); if (e.button === 1) newTab(cr.dataset.p, act + 1, false); else if (e.button === 0) go(tab(), cr.dataset.p); return; }
+  if (e.button === 0) { e.preventDefault(); editPath(); }
+});
+
+// ---------------------------------------------------------------- фильтр и поиск в папке
+function focusFind() { const f = $('#find'); f.focus(); f.select(); }
+let filterT;
+$('#find').addEventListener('focus', () => $('#findw').classList.add('focus'));
+$('#find').addEventListener('blur', () => $('#findw').classList.remove('focus'));
+$('#find').addEventListener('input', e => {
+  findState();
+  const t = tab();
+  if (t.search) return;
+  clearTimeout(filterT);
+  filterT = setTimeout(() => { t.filter = e.target.value; recompute(t); scroller.scrollTop = 0; render(); paintEmpty(); paintStatus(); }, 40);
+});
+$('#find').addEventListener('keydown', e => {
+  e.stopPropagation();
+  const t = tab();
+  if (e.key === 'Enter') { e.preventDefault(); deepSearch(e.target.value); scroller.focus(); }
+  else if (e.key === 'Escape') { e.preventDefault(); if (t.search) exitSearch(t); else { e.target.value = ''; t.filter = ''; recompute(t); paint(); findState(); } scroller.focus(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); scroller.focus(); moveCur(1); }
+  else if ((e.ctrlKey && e.code === 'KeyK')) { e.preventDefault(); palette(); }
+});
+$('#findx').addEventListener('mousedown', e => { e.preventDefault(); const t = tab(); $('#find').value = ''; findState(); if (t.search) exitSearch(t); else { t.filter = ''; recompute(t); paint(); } });
+
+// ---------------------------------------------------------------- мышь в списке
+let pendingSingle = null, suppressClick = false;
+scroller.addEventListener('mousedown', e => {
+  if (e.target === scroller && e.offsetX >= scroller.clientWidth) return; // полоса прокрутки
+  const el = itemEl(e.target), t = tab();
+  scroller.focus({preventScroll: true});
+  if (e.button === 1) { e.preventDefault(); if (el && el._e.dir) newTab(el._e.p, act + 1, false); return; }
+  if (el) {
+    const k = el.dataset.k;
+    if (e.button === 2) { if (!t.sel.has(k)) { selectOnly(t, k); paintSel(); } return; }
+    if (e.button !== 0) return;
+    if (e.ctrlKey && e.shiftKey) rangeTo(t, k, true);
+    else if (e.ctrlKey) toggleSel(t, k);
+    else if (e.shiftKey) rangeTo(t, k, false);
+    else if (!t.sel.has(k)) selectOnly(t, k);
+    else { t.cur = k; pendingSingle = k; }
+    paintSel();
+  } else if (e.button === 0) startBand(e);
+  else if (e.button === 2 && !e.ctrlKey) { t.sel.clear(); paintSel(); }
+});
+scroller.addEventListener('click', e => {
+  if (suppressClick) { suppressClick = false; return; }
+  if (pendingSingle && !e.ctrlKey && !e.shiftKey) { const t = tab(); selectOnly(t, pendingSingle); paintSel(); }
+  pendingSingle = null;
+});
+scroller.addEventListener('dblclick', e => { const el = itemEl(e.target); if (el && el !== renamingEl) openEntry(el._e, e.ctrlKey); });
+scroller.addEventListener('contextmenu', e => { e.preventDefault(); const el = itemEl(e.target); if (el) itemMenu(e.clientX, e.clientY, e.shiftKey); else bgMenu(e.clientX, e.clientY); });
+scroller.addEventListener('scroll', () => requestAnimationFrame(render), {passive: true});
+new ResizeObserver(() => { render(); paintPath(); paintHead(); }).observe(scroller);
+new ResizeObserver(() => paintPath()).observe($('#path'));
+
+function startBand(e) {
+  const t = tab(), r = scroller.getBoundingClientRect();
+  const sx = e.clientX - r.left, sy = e.clientY - r.top + scroller.scrollTop;
+  const base = e.ctrlKey ? new Set(t.sel) : new Set(), ctrl = e.ctrlKey;
+  if (!ctrl && t.sel.size) { t.sel.clear(); t.cur = null; paintSel(); }
+  let moved = false, last = e, raf = 0;
+  const upd = () => {
+    const ex = Math.max(0, Math.min(scroller.clientWidth, last.clientX - r.left)), ey = Math.max(0, last.clientY - r.top + scroller.scrollTop);
+    if (!moved && Math.abs(ex - sx) + Math.abs(ey - sy) < 5) return;
+    moved = true;
+    const x0 = Math.min(sx, ex), x1 = Math.max(sx, ex), y0 = Math.min(sy, ey), y1 = Math.max(sy, ey);
+    Object.assign(band.style, {display: 'block', left: x0 + 'px', top: y0 + 'px', width: (x1 - x0) + 'px', height: (y1 - y0) + 'px'});
+    const g = geo(), sel = new Set(base);
+    const ra = Math.max(0, Math.floor((y0 - g.pad) / g.rowH)), rb = Math.floor((y1 - g.pad) / g.rowH);
+    for (let row = ra; row <= rb; row++) for (let c = 0; c < g.cols; c++) {
+      const i = row * g.cols + c;
+      if (i >= t.vis.length) break;
+      const ty = g.pad + row * g.rowH;
+      if (S.view === 'list') { if (y1 < ty + 3 || y0 > ty + g.rowH - 3) continue; }
+      else { const tx = 8 + c * g.tw; if (x1 < tx || x0 > tx + g.tw - 8 || y1 < ty || y0 > ty + 120) continue; }
+      const k = key(t.vis[i].p);
+      if (ctrl && base.has(k)) sel.delete(k); else sel.add(k);
+    }
+    t.sel = sel; paintSel();
+  };
+  const auto = () => {
+    const y = last.clientY; let d = 0;
+    if (y < r.top + 8) d = y - (r.top + 8); else if (y > r.bottom - 8) d = y - (r.bottom - 8);
+    if (d && moved) { scroller.scrollTop += Math.max(-30, Math.min(30, d)); upd(); }
+    raf = requestAnimationFrame(auto);
+  };
+  raf = requestAnimationFrame(auto);
+  const mv = ev => { last = ev; upd(); };
+  const upf = () => {
+    cancelAnimationFrame(raf);
+    removeEventListener('mousemove', mv); removeEventListener('mouseup', upf);
+    band.style.display = 'none';
+    if (moved) { suppressClick = true; const s = selEntries(t); if (s.length) { t.cur = key(s[s.length - 1].p); t.anchor = key(s[0].p); } }
+    paintSel();
+  };
+  addEventListener('mousemove', mv); addEventListener('mouseup', upf);
+}
+
+$('#head').addEventListener('click', e => { const d = e.target.closest('[data-k]'); if (d && d.dataset.k !== 'loc') setSort(d.dataset.k); });
+$('#pcview').addEventListener('click', e => { const el = e.target.closest('[data-p]'); if (el) go(tab(), el.dataset.p); });
+$('#pcview').addEventListener('auxclick', e => { const el = e.target.closest('[data-p]'); if (el && e.button === 1) newTab(el.dataset.p, act + 1, false); });
+
+// ---------------------------------------------------------------- боковая панель и вкладки
+$('#side').addEventListener('click', e => {
+  const el = e.target.closest('.si[data-p]');
+  if (!el) return;
+  const p = el.dataset.p;
+  if (p.startsWith('shell:')) return send('explorer', {p});
+  go(tab(), p);
+});
+$('#side').addEventListener('auxclick', e => { const el = e.target.closest('.si[data-p]'); if (el && e.button === 1 && !el.dataset.p.startsWith('shell:')) newTab(el.dataset.p, act + 1, false); });
+$('#side').addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const el = e.target.closest('.si[data-p]');
+  if (!el || el.dataset.p.startsWith('shell:')) return;
+  const p = el.dataset.p;
+  menu(e.clientX, e.clientY, [
+    {t: 'Открыть', b: true, f: () => go(tab(), p)},
+    {t: 'Открыть в новой вкладке', f: () => newTab(p, act + 1)},
+    !isPC(p) && '-',
+    el.dataset.pin && {t: 'Открепить', f: () => togglePin(p)},
+    !isPC(p) && !el.dataset.pin && !/^[A-Z]:\\$/i.test(p) && {t: isPinned(p) ? 'Открепить' : 'Закрепить', f: () => togglePin(p)},
+    !isPC(p) && {t: 'Открыть в терминале', f: () => send('term', {p})},
+    !isPC(p) && {t: 'Свойства', f: () => send('props', {p})},
+  ]);
+});
+$('#tabs').addEventListener('mousedown', e => {
+  const el = e.target.closest('.tab');
+  if (!el) return;
+  const i = +el.dataset.i;
+  if (e.button === 1) { e.preventDefault(); closeTab(i); return; }
+  if (e.target.closest('.x')) return;
+  if (e.button === 0) activate(i);
+});
+$('#tabs').addEventListener('click', e => { const x = e.target.closest('.x'); if (x) closeTab(+x.closest('.tab').dataset.i); });
+$('#tabs').addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const el = e.target.closest('.tab'); if (!el) return;
+  const i = +el.dataset.i, t = tabs[i];
+  menu(e.clientX, e.clientY, [
+    {t: 'Новая вкладка', k: 'Ctrl+T', f: () => newTab(null, i + 1)},
+    {t: 'Дублировать', f: () => newTab(t.path, i + 1)},
+    '-',
+    {t: 'Закрыть', k: 'Ctrl+W', f: () => closeTab(i)},
+    tabs.length > 1 && {t: 'Закрыть другие', f: () => { tabs = [t]; act = 0; clearNodes(); paint(); watchTabs(); saveSoon(); }},
+  ]);
+});
+$('#plus').addEventListener('click', () => newTab());
+$('#drag').addEventListener('mousedown', e => { if (e.button === 0 && e.detail === 1) send('win', {k: 'drag'}); });
+$('#drag').addEventListener('dblclick', () => send('win', {k: 'max'}));
+$('#top').addEventListener('dblclick', e => { if (e.target.id === 'tabs') newTab(); });
+$('#wmin').onclick = () => send('win', {k: 'min'});
+$('#wmax').onclick = () => send('win', {k: 'max'});
+$('#wclose').onclick = () => send('win', {k: 'close'});
+$('#back').onclick = back; $('#fwd').onclick = fwd; $('#up').onclick = up;
+$('#vlist').onclick = () => setView('list'); $('#vgrid').onclick = () => setView('grid');
+$('#vprev').onclick = togglePreview; $('#menu').onclick = palette;
+document.addEventListener('mouseup', e => { if (e.button === 3) back(); if (e.button === 4) fwd(); });
+
+// разделители панелей
+for (const [id, prop, sign, min, max] of [['#sp1', 'sideW', 1, 160, 380], ['#sp2', 'prevW', -1, 220, 640]]) {
+  $(id).addEventListener('mousedown', e => {
+    e.preventDefault();
+    const x0 = e.clientX, w0 = S[prop];
+    $(id).classList.add('on');
+    const mv = ev => { S[prop] = Math.max(min, Math.min(max, w0 + sign * (ev.clientX - x0))); applyLayout(); };
+    const upf = () => { $(id).classList.remove('on'); removeEventListener('mousemove', mv); removeEventListener('mouseup', upf); saveSoon(); };
+    addEventListener('mousemove', mv); addEventListener('mouseup', upf);
+  });
+}
+function applyLayout() {
+  document.documentElement.style.setProperty('--sw', S.sideW + 'px');
+  document.documentElement.style.setProperty('--pw', S.prevW + 'px');
+}
+
+// ---------------------------------------------------------------- перетаскивание
+scroller.addEventListener('dragstart', e => {
+  const el = itemEl(e.target);
+  if (!el) return;
+  const t = tab(), k = el.dataset.k;
+  if (!t.sel.has(k)) { selectOnly(t, k); paintSel(); }
+  pendingSingle = null;
+  const s = selEntries(t);
+  dragSrc = s.map(x => x.p);
+  e.dataTransfer.setData('application/x-files', JSON.stringify(dragSrc));
+  e.dataTransfer.effectAllowed = 'copyMove';
+  const g = $('#ghost'); g.textContent = s.length === 1 ? s[0].n : countText(s.length);
+  e.dataTransfer.setDragImage(g, -14, -10);
+});
+document.addEventListener('dragend', () => { dragSrc = null; setDrop(null); });
+let tabHover = null, tabHoverT;
+function dropTarget(e) {
+  const t = tab();
+  const it = itemEl(e.target);
+  if (it && it._e.dir) return {p: it._e.p, el: it};
+  const si = e.target.closest && e.target.closest('.si[data-p]');
+  if (si) return si.dataset.p === 'pc' || si.dataset.p.startsWith('shell:') ? null : {p: si.dataset.p, el: si};
+  const pins = e.target.closest && e.target.closest('#side');
+  if (pins && dragSrc) return {pin: true, el: $('#side .sec.pins')};
+  const cr = e.target.closest && e.target.closest('.cr');
+  if (cr) return isPC(cr.dataset.p) ? null : {p: cr.dataset.p, el: cr};
+  const tb = e.target.closest && e.target.closest('.tab');
+  if (tb) { const x = tabs[+tb.dataset.i]; return isPC(x.path) || x.search ? {tab: +tb.dataset.i, el: tb} : {p: x.path, el: tb, tab: +tb.dataset.i}; }
+  if (e.target.closest && e.target.closest('#pane') && !isPC(t.path) && !t.search) return {p: t.path, el: null};
+  return null;
+}
+function setDrop(el) { if (dropEl === el) return; if (dropEl) dropEl.classList.remove('drop'); dropEl = el; if (el) el.classList.add('drop'); }
+function effectFor(e, dst) {
+  if (e.ctrlKey) return 'copy';
+  if (e.shiftKey) return 'move';
+  if (!dragSrc) return 'copy';
+  return sameDrive(dragSrc[0], dst) ? 'move' : 'copy';
+}
+document.addEventListener('dragover', e => {
+  const types = [...e.dataTransfer.types];
+  const internal = types.includes('application/x-files'), external = types.includes('Files');
+  if (!internal && !external) return;
+  const tg = dropTarget(e);
+  if (tg && tg.tab != null && tg.tab !== act) { if (tabHover !== tg.tab) { tabHover = tg.tab; clearTimeout(tabHoverT); tabHoverT = setTimeout(() => activate(tabHover), 600); } }
+  else { tabHover = null; clearTimeout(tabHoverT); }
+  if (!tg || (!tg.p && !tg.pin)) { setDrop(null); return; }
+  if (tg.pin) { e.preventDefault(); e.dataTransfer.dropEffect = 'link'; setDrop(tg.el); return; }
+  if (internal && dragSrc) {
+    const d = key(tg.p);
+    const bad = dragSrc.some(s => key(s) === d || d.startsWith(key(s) + '\\'));
+    const same = dragSrc.every(s => key(dirOf(s)) === d);
+    if (bad || (same && !e.ctrlKey)) { setDrop(null); return; }
+  }
+  e.preventDefault();
+  e.dataTransfer.dropEffect = effectFor(e, tg.p);
+  setDrop(tg.el);
+});
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const tg = dropTarget(e);
+  setDrop(null); clearTimeout(tabHoverT);
+  if (!tg) return;
+  const types = [...e.dataTransfer.types];
+  if (tg.pin) { if (dragSrc) for (const p of dragSrc) { const k = tab().idx.get(key(p)); const en = k != null && tab().vis[k]; if (en && en.dir && !isPinned(p)) S.pins.push(p); } paintSide(); saveSoon(); return; }
+  if (!tg.p) return;
+  if (types.includes('application/x-files') && dragSrc) { doMove(dragSrc, tg.p, effectFor(e, tg.p) === 'copy'); }
+  else if (types.includes('Files') && e.dataTransfer.files.length) {
+    const id = ++rid;
+    const pr = new Promise((res, rej) => waits.set(id, {res, rej}));
+    wv.postMessageWithAdditionalObjects({c: 'drop', id, p: tg.p, copy: !e.shiftKey}, e.dataTransfer.files);
+    busyN++; prog(true);
+    pr.then(r => { if (r && r.n && !r.aborted) toast('Добавлено: ' + countText(r.x ? r.x.n : r.n)); }).catch(err => toast(err, true)).finally(() => { busyN--; prog(false); reloadSoon(); });
+  }
+});
+
+// ---------------------------------------------------------------- клавиатура
+let ta = '', taT = 0;
+document.addEventListener('keydown', e => {
+  if (palOpen) return palKey(e);
+  if (ctxOpen) return ctxKey(e);
+  const t = tab(), C = e.ctrlKey, Sh = e.shiftKey, A = e.altKey, code = e.code, k = e.key;
+  const inInput = e.target.tagName === 'INPUT';
+  const stop = () => { e.preventDefault(); e.stopPropagation(); };
+  // глобальные
+  if (C && !Sh && code === 'KeyK' || C && Sh && code === 'KeyP') { stop(); return palette(); }
+  if (C && !Sh && code === 'KeyT') { stop(); return newTab(); }
+  if (C && !Sh && code === 'KeyW' || C && k === 'F4') { stop(); return closeTab(); }
+  if (C && k === 'Tab') { stop(); return activate((act + (Sh ? -1 : 1) + tabs.length) % tabs.length); }
+  if (C && !Sh && /^Digit[1-9]$/.test(code)) { stop(); const n = +code.slice(5); return activate(n === 9 ? tabs.length - 1 : n - 1); }
+  if (C && !Sh && code === 'KeyL' || A && code === 'KeyD' || k === 'F4' && !C && !A) { stop(); return editPath(); }
+  if (C && !Sh && (code === 'KeyF' || code === 'KeyE')) { stop(); return focusFind(); }
+  if (k === 'F5' || C && code === 'KeyR') { stop(); return refresh(); }
+  if (A && k === 'ArrowLeft') { stop(); return back(); }
+  if (A && k === 'ArrowRight') { stop(); return fwd(); }
+  if (A && k === 'ArrowUp') { stop(); return up(); }
+  if (C && code === 'KeyH') { stop(); return toggleHidden(); }
+  if (C && code === 'Backquote') { stop(); return term(); }
+  if (C && Sh && code === 'KeyN') { stop(); return newItem('dir'); }
+  if (C && Sh && code === 'Digit1') { stop(); return setView('list'); }
+  if (C && Sh && code === 'Digit2') { stop(); return setView('grid'); }
+  if (inInput || e.target.isContentEditable) return;
+  if (isPC(t.path)) { if (k === 'Backspace') { stop(); back(); } return; }
+  const g = geo(), pageRows = Math.max(1, Math.floor(scroller.clientHeight / g.rowH) - 1);
+  switch (k) {
+    case 'ArrowDown': stop(); return moveCur(g.cols, Sh, C);
+    case 'ArrowUp': stop(); return moveCur(-g.cols, Sh, C);
+    case 'ArrowRight': if (g.cols > 1) { stop(); return moveCur(1, Sh, C); } return;
+    case 'ArrowLeft': if (g.cols > 1) { stop(); return moveCur(-1, Sh, C); } return;
+    case 'PageDown': stop(); return moveCur(pageRows * g.cols, Sh, C);
+    case 'PageUp': stop(); return moveCur(-pageRows * g.cols, Sh, C);
+    case 'Home': stop(); return moveCur(-1e9, Sh, C);
+    case 'End': stop(); return moveCur(1e9, Sh, C);
+    case 'Enter': stop(); if (A) return props(); return openSel(C);
+    case 'Backspace': stop(); return back();
+    case 'Delete': stop(); return del(Sh);
+    case 'F2': stop(); return startRename();
+    case 'Escape': stop(); if (t.search) return exitSearch(t); if (t.filter) { $('#find').value = ''; t.filter = ''; findState(); recompute(t); return paint(); } t.sel.clear(); cutSet.clear(); render(); return paintSel();
+    case 'ContextMenu': stop(); { const el = nodes.get(t.cur) || [...nodes.values()].find(x => x.classList.contains('sel')); if (el && t.sel.size) { const r = el.getBoundingClientRect(); itemMenu(r.left + 40, r.top + r.height / 2, Sh); } else bgMenu(innerWidth / 2, innerHeight / 3); } return;
+  }
+  if (Sh && k === 'F10') { stop(); const s = selEntries(t); if (s.length) { const el = nodes.get(t.cur); const r = el ? el.getBoundingClientRect() : {left: 200, top: 200, height: 0}; send('menu', {src: s.map(x => x.p), x: r.left + 40, y: r.top + r.height / 2}); } return; }
+  if (C && !Sh) {
+    if (code === 'KeyA') { stop(); t.sel = new Set(t.vis.map(x => key(x.p))); render(); return paintSel(); }
+    if (code === 'KeyC') { stop(); return copySel(false); }
+    if (code === 'KeyX') { stop(); return copySel(true); }
+    if (code === 'KeyV') { stop(); return paste(); }
+  }
+  if (C && Sh && code === 'KeyC') { stop(); return copyPath(); }
+  if (k === ' ' && !(Date.now() - taT < 800 && ta)) { stop(); return togglePreview(); }
+  // набор имени — прыжок к файлу
+  if (!C && !A && k.length === 1) {
+    stop();
+    const now = Date.now();
+    ta = (now - taT < 800 ? ta : '') + k.toLowerCase(); taT = now;
+    const n = t.vis.length, start = ta.length === 1 ? curIndex(t) + 1 : Math.max(0, curIndex(t));
+    for (let j = 0; j < n; j++) {
+      const i = (start + j) % n;
+      if (t.vis[i].lc.startsWith(ta)) { selectOnly(t, key(t.vis[i].p)); reveal(); paintSel(); break; }
+    }
+  }
+});
+
+// ---------------------------------------------------------------- события от приложения
+wv.addEventListener('message', ev => {
+  const m = ev.data;
+  if (m.r !== undefined) {
+    const w = waits.get(m.r);
+    if (w) { waits.delete(m.r); m.e !== undefined ? w.rej(m.e) : w.res(m.v); }
+    return;
+  }
+  switch (m.ev) {
+    case 'changed': {
+      const set = new Set(m.dirs.map(key));
+      for (const t of tabs) if (!t.search && set.has(key(t.path))) { if (t === tab()) load(t, true); else t.stale = true; }
+      clearTimeout(drvT); drvT = setTimeout(refreshDrives, 1500);
+      break;
+    }
+    case 'search': onSearch(m); break;
+    case 'dirsize': onDirSize(m); break;
+    case 'menu': if (m.verb === 'rename') startRename(); else reloadSoon(); break;
+    case 'open': openPath(m.p, true); break;
+    case 'focus': document.body.classList.toggle('act', m.on); if (m.on) { refreshDrives(); } break;
+    case 'win': $('#wmax').innerHTML = svg(m.max ? UI.restore : UI.max); setTimeout(paintPath, 30); break;
+  }
+});
+let drvT;
+
+// ---------------------------------------------------------------- сохранение и запуск
+let saveT;
+function saveSoon() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => send('save', {state: {view: S.view, sort: S.sort, hidden: S.hidden, preview: S.preview, pins: S.pins, recent: S.recent.slice(0, 60), sideW: S.sideW, prevW: S.prevW, tabs: tabs.map(t => t.path), active: act}}), 400);
+}
+async function openPath(p, inNewTab) {
+  if (!p) { if (inNewTab) newTab(); return; }
+  let st = {ok: false};
+  try { st = await call('stat', {p}); } catch (e) {}
+  const target = st.ok && !st.dir ? dirOf(p) : p;
+  if (inNewTab) { const t = newTab(target); if (st.ok && !st.dir) t.wantSel = p; }
+  else go(tab(), target, st.ok && !st.dir ? {select: p} : {});
+}
+let booted = false, initDone = false;
+function boot() {
+  booted = true;
+  requestAnimationFrame(() => requestAnimationFrame(() => send('ready')));
+}
+(async function init() {
+  applyLayout();
+  refreshDrives();
+  const list = B.test ? [] : Array.isArray(S.tabs) && S.tabs.length ? S.tabs : [];
+  for (const p of list) newTab(p, undefined, false);
+  act = Math.max(0, Math.min(S.active || 0, tabs.length - 1));
+  initDone = true;
+  if (B.open) await openPath(B.open, true);
+  else if (!tabs.length) newTab(homePath());
+  else { paint(); const t = tab(); if (!t.loading && !booted) boot(); }
+  scroller.focus();
+})();
+</script>
+</body>
+</html>
